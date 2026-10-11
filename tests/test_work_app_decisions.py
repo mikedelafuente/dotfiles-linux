@@ -112,6 +112,7 @@ Signed-By: /usr/share/keyrings/google-chrome.gpg"""
             f" {hashlib.md5(data).hexdigest()} {hashlib.sha1(data).hexdigest()} {len(data)} {name}"
             for name, data in members[:-1])
         zoom_manifest(package, manifest)
+        zoom_manifest(package, manifest.replace("\n ", "\n\t") + "\n")
         for bad in (manifest.replace("Role: builder", "Role: unknown"),
                     manifest.replace("Version: 4", "Version: 3"),
                     manifest.rsplit("\n", 1)[0], manifest + "\n" + manifest.splitlines()[-1]):

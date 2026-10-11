@@ -177,14 +177,17 @@ def zoom_manifest(path, text):
     rows = {}
     in_files = False
     for line in text.splitlines():
+        line = line.rstrip()
+        if not line and in_files:
+            continue
         if line == "Files:":
             if in_files:
                 raise ValueError("duplicate Files field")
             in_files = True
         elif in_files:
-            match = re.fullmatch(r" ([a-f0-9]{32}) ([a-f0-9]{40}) ([0-9]+) (\S+)", line)
+            match = re.fullmatch(r"[ \t]([a-f0-9]{32}) ([a-f0-9]{40}) ([0-9]+) (\S+)", line)
             if not match or match[4] in rows:
-                raise ValueError("invalid signed file list")
+                raise ValueError(f"invalid signed file list line: {line!r}")
             rows[match[4]] = (match[1], match[2], int(match[3]))
     if rows != zoom_members(path):
         raise ValueError("Zoom package differs from signed manifest")
