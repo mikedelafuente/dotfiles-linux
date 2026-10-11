@@ -739,7 +739,6 @@ require_workstation_entrypoint() {
     ubuntu:sync-sources.sh) return 0 ;;
     ubuntu:bootstrap.sh|ubuntu:sync.sh|ubuntu:run-profile-setup.sh|ubuntu:link-dotfiles.sh) return 0 ;;
     ubuntu:v1-to-v2-migration.sh|ubuntu:v2-to-v3-migration.sh|ubuntu:v3-to-v4-migration.sh) return 0 ;;
-    ubuntu:setup-ninjaone.sh|ubuntu:update-ninjaone.sh|ubuntu:uninstall-ninjaone.sh) return 0 ;;
     ubuntu:setup-steam.sh|ubuntu:setup-discord.sh|ubuntu:setup-firefox.sh|ubuntu:setup-mullvad.sh) return 0 ;;
     ubuntu:setup-nvidia.sh|ubuntu:setup-ollama.sh) return 0 ;;
     ubuntu:setup-tableplus.sh|ubuntu:setup-postman.sh|ubuntu:setup-spotify.sh|ubuntu:setup-obsidian.sh|ubuntu:setup-moonlander.sh) return 0 ;;

@@ -28,7 +28,6 @@ set +e # Keep failures from independent steps in the final summary.
 WEEKLY_STEPS=(
   dfa-update-system
   dfa-remove-orphans
-  dfa-update-ninjaone
 )
 
 usage() {
@@ -44,7 +43,6 @@ Steps:
                              cooldown so a real upgrade attempt happens at
                              least once a week
   dfa-remove-orphans        preview native orphan/removal candidates
-  dfa-update-ninjaone       NinjaOne health check; IT-managed agents are read-only
 
 Example:
   dfa-weekly --yes   non-interactive (forwarded to dfa-daily and dfa-update-system)

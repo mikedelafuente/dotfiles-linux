@@ -66,7 +66,7 @@ def main():
             assert not decision(home, "ubuntu", f"orphan_removal_allowed {flags}"), flags
         for entrypoint in ("dfa-daily", "dfa-weekly", "update-system.sh", "dfa-remove-orphans",
                            "migrate.sh", "sync-skills.sh", "sync-rules.sh", "sync-extensions.sh", "sync-sources.sh",
-                           "update-npm-clis.sh", "setup-harness-agents.sh", "setup-ninjaone.sh", "update-ninjaone.sh", "uninstall-ninjaone.sh", "setup-zed.sh", "setup-orca.sh"):
+                           "update-npm-clis.sh", "setup-harness-agents.sh", "setup-zed.sh", "setup-orca.sh"):
             assert decision(home, "ubuntu", f"require_workstation_entrypoint ubuntu {entrypoint}")
         for entrypoint in ("bootstrap.sh", "sync.sh", "run-profile-setup.sh", "link-dotfiles.sh",
                            "v1-to-v2-migration.sh", "v2-to-v3-migration.sh", "v3-to-v4-migration.sh"):

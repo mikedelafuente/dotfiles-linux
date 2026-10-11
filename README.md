@@ -27,7 +27,7 @@ Choose by what you want to do:
 | Goal | Command | Pulls latest? | Runs setup/packages? |
 | --- | --- | --- | --- |
 | Usual daily updates | `dfa daily` | Yes; requires a clean dotfiles checkout | Routine updates |
-| Weekly maintenance | `dfa weekly` | Yes; includes daily | Forced updates, orphan preview, NinjaOne health |
+| Weekly maintenance | `dfa weekly` | Yes; includes daily | Forced updates, orphan preview |
 | Test config, rule or skill edits | `dfa deploy` | No; uses uncommitted local files | No |
 | Test setup scripts or repair setup | `dfa sync-dotfiles` | No; uses uncommitted local files | Yes; saved profile setup and guarded updates |
 
@@ -99,9 +99,6 @@ before changes. Native packages use their distro updater; managed release
 exceptions refresh through their recorded owners. Daily/weekly sequencing is
 shared. Missing required steps, setup failures, link conflicts, hook failures,
 and update failures reach the final nonzero status while independent work continues.
-Weekly NinjaOne health checks run on both hosts; IT-managed installations are
-checked read-only. Standalone opt-in native Ubuntu installation/removal is described
-in [NinjaOne lifecycle and validation limits](PACKAGES.md#ninjaone-standalone-lifecycle--arch--ubuntu-2604).
 See [Kitty sources and validation limits](PACKAGES.md#kitty-distro-slice).
 
 The shared shell/core CLI slice also supports these standalone commands:
@@ -174,10 +171,7 @@ Paths use `$HOME` — different usernames on other machines are fine.
 ```bash
 dfa-daily                         # dfa-update-repos + dfa-migrate + dfa-update-system + dfa-sync-extensions + dfa-sync-skills + dfa-sync-rules + dfa-sync-harness-agents (edit ~/.local/bin/dfa-daily)
                               # if dfa-update-repos pulls new dotfiles-linux commits, runs dfa-sync-dotfiles and restarts once
-dfa-weekly                        # dfa-daily + forced updates + orphan preview + native NinjaOne health check
-dfa-install-ninjaone             # standalone, work machines: hidden vendor URL prompt (native Ubuntu DEB / Arch repackaging)
-dfa-update-ninjaone              # weekly health/repair for owned installs; IT-managed agents checked read-only
-dfa-uninstall-ninjaone           # terminal + type remove; Ubuntu retains SentinelOne unless --remove-sentinelone is separately confirmed
+dfa-weekly                        # dfa-daily + forced updates + orphan preview
 dfa-sync-sources add /path/to/repo # manual standard resource source: skills/rules and full shared Pi data; then dfa-deploy deploy
 dfa-update-system                 # after link-dotfiles; or:
 bash scripts/update-system.sh
