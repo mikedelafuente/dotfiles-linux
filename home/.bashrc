@@ -394,11 +394,6 @@ export NVM_DIR="$HOME/.config/nvm"
 [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 
-# Initialize zoxide if installed
-if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init bash)"
-fi
-
 # fzf key bindings + completion (Ctrl-R history, Ctrl-T files, Alt-C cd)
 if command -v fzf &> /dev/null; then
     export FZF_DEFAULT_OPTS='--height=40% --layout=reverse --border --info=inline'
@@ -447,3 +442,8 @@ done
 # Default to production read-only SSO profile
 export AWS_PROFILE=production-readonly
 export AWS_DEFAULT_REGION=us-east-1
+
+# Keep zoxide last: prompt initializers such as Starship replace PROMPT_COMMAND.
+if command -v zoxide &> /dev/null; then
+    eval "$(zoxide init bash)"
+fi
