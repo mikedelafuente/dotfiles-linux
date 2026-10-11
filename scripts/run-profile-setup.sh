@@ -104,10 +104,11 @@ run_setup setup-orca.sh
 
 # Additive profile extras (multi-select — all selected profiles are installed)
 if has_setup_profile work; then
-  print_line_break "Work profile — Zoom + Slack + Chrome"
+  print_line_break "Work profile — Zoom + Slack + Chrome + AWS CLI"
   run_setup setup-zoom.sh
   run_setup setup-slack.sh
   run_setup setup-chrome.sh
+  run_setup setup-awscli.sh
 fi
 
 if has_setup_profile personal; then
