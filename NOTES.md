@@ -123,7 +123,7 @@ This hands off directly into bootstrap for the rest of the tooling (any argument
 pass to `post_install.sh` are forwarded to it) — no separate command needed. You will be
 prompted for profiles (multi-select; any combination):
 
-- **work** — shared stack + Zoom + Slack + Chrome
+- **work** — shared stack + Zoom + Slack + Chrome + AWS CLI
 - **personal** — shared stack + Steam + Discord + Firefox + Mullvad
 - **devcontainer** — host tools for the platform sandbox (just, mkcert, openvpn3, `~test` DNS, …)
 

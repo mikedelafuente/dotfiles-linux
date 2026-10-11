@@ -37,6 +37,8 @@ def main():
         decide("core_cli_recipe arch fd", "fd fd native 8.0.0")
         decide("core_cli_recipe ubuntu github-cli", "gh gh native 2.0.0")
         decide("core_cli_recipe ubuntu glow", "glow glow charm 1.0.0")
+        decide("core_cli_recipe ubuntu awscli", "awscli aws native 2.0.0")
+        decide("core_cli_recipe arch awscli", "aws-cli-v2 aws native 2.0.0")
         decide("core_cli_recipe ubuntu unknown", ok=False)
         for version, ok in (("0.48.0", True), ("0.67.0", True), ("1.0.0", True),
                             ("0.47.9", False), ("unknown", False), ("$(exit 97)", False)):
@@ -61,7 +63,7 @@ def main():
         parent_link.symlink_to(guard, target_is_directory=True)
         decide(f'core_cli_link_allowed "{source}" "{parent_link}/config"', ok=False)
         for entrypoint in ("setup-essentials.sh", "setup-bash.sh", "setup-git.sh",
-                           "setup-github-cli.sh", "setup-node.sh"):
+                           "setup-github-cli.sh", "setup-node.sh", "setup-awscli.sh"):
             decide(f"require_workstation_entrypoint ubuntu {entrypoint}")
     print("Core CLI decisions passed (no setup workflows executed)")
 

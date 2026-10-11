@@ -201,7 +201,7 @@ Runtime paths: [validation inventory](docs/ubuntu-integration-validation.md).
 
 | Profile | Extra | Browser |
 |---------|-------|---------|
-| **work** | Zoom, Slack, Chrome | Chrome |
+| **work** | Zoom, Slack, Chrome, AWS CLI | Chrome |
 | **personal** | Steam, Discord, Firefox, Mullvad (Arch / Ubuntu 26.04) | Firefox; selected known-owner launcher, work still wins |
 
 Saved in `~/.config/dotfiles-arch/.dotfiles_bootstrap_config`, along with

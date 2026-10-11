@@ -13,6 +13,8 @@ core_cli_recipe() {
         coreutils) command=sha256sum ;; gnupg) command=gpg ;;
         bash-completion) command=- ;;
       esac ;;
+    awscli) package=aws-cli-v2; command=aws; minimum=2.0.0
+      [[ "$distro" != ubuntu ]] || package=awscli ;;
     bash) package=bash; command=bash; minimum=4.0.0 ;;
     openssh) package=openssh; command=ssh; [[ "$distro" != ubuntu ]] || package=openssh-client ;;
     util-linux) package=util-linux; command=col; [[ "$distro" != ubuntu ]] || package=bsdextrautils ;;

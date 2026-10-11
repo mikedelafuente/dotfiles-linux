@@ -760,13 +760,14 @@ direct Bash syntax/ShellCheck and source/acquisition/udev inspection only.
 Profiles are **additive multi-select** — enable any combination on one machine
 (`SETUP_PROFILES`, e.g. `work devcontainer`). Shared stack always installs first.
 
-### work — `setup-zoom.sh`, `setup-slack.sh`, `setup-chrome.sh`
+### work — `setup-zoom.sh`, `setup-slack.sh`, `setup-chrome.sh`, `setup-awscli.sh`
 
 | Package | Purpose | Related commands |
 |---------|---------|-------------------|
 | `zoom` (AUR) | Meetings | — |
 | `slack-desktop` (AUR) | Team chat | — |
 | `google-chrome` (AUR) | Work browser (Super+B when work is selected) | — |
+| `aws-cli-v2` (Arch) / `awscli` (Ubuntu universe) | AWS CLI v2; updated by pacman/APT via `dfa-update-system` (`setup-awscli.sh`) | `aws` |
 
 ### personal — `setup-steam.sh`, `setup-discord.sh`, `setup-firefox.sh`, `setup-mullvad.sh`
 
