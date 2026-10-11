@@ -437,6 +437,15 @@ for gem_bin in "${XDG_DATA_HOME:-$HOME/.local/share}"/gem/ruby/*/bin "$HOME"/.ge
     fi
 done
 
+# SonarQube CLI (script install; updates via `sonar update`)
+sonar_bin="${XDG_DATA_HOME:-$HOME/.local/share}/sonarqube-cli/bin"
+if [ -d "$sonar_bin" ]; then
+    case ":$PATH:" in
+        *":$sonar_bin:"*) ;;
+        *) export PATH="$sonar_bin:$PATH" ;;
+    esac
+fi
+
 # Default to production read-only SSO profile
 export AWS_PROFILE=production-readonly
 export AWS_DEFAULT_REGION=us-east-1
