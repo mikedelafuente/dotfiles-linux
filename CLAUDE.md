@@ -53,7 +53,7 @@ Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation
   mutation helpers need explicit return/exit guards when callers capture statuses.
   Write successful update stamps only after all requested native/app updates succeed.
 - Cleanup previews first. Removal requires a terminal and typing `remove`; `--yes` alone
-  never authorizes it. NinjaOne is separate work-profile opt-in; installer URLs are secrets.
+  never authorizes it.
 - `prepare-archinstall.sh` is live-ISO-only. Require repeated disk-path confirmation;
   exclude nonphysical disks. Never read/write `user_credentials.json`.
 

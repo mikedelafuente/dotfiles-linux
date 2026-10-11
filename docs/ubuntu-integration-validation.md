@@ -24,7 +24,7 @@ Regression decision checks were updated and left unrun under the user's executio
 | Cleanup | `--cleanup` previews; Arch obsolete names never reach Ubuntu; `--remove-obsolete` needs a terminal + typed `remove`; native orphan removal is separately requested; npm/config directories are retained | Full recursive native plans, dependencies, native final prompts, management/security-agent review |
 | GNOME/appearance | Ubuntu GNOME 50 target; reviewed Pop pin supports 51; accepted Pop-only gap above 51 preserves native moves; other required extension/config failures still fail | Acquisition/schema compatibility, extensions, tray/panel/clipboard/fonts/themes, login reload, Wayland shortcuts |
 | Development stack | Explicit CLI/editor/language/container/harness recipes, minimums/capabilities and owners retained | Neovim/plugins/Treesitter, IDE GPU runtime, toolchains/gems/Composer, Docker/Compose/Buildx, mkcert trust, VPN/split DNS/watch limits |
-| Hardware/managed software | Preserve driver flavor, holds/pins, automatic security updates and IT-managed agents; GPU apps remain capability-gated; NinjaOne stays opt-in | Driver activation/MOK/CUDA/Vulkan, power/lid/audio/KVM, ZSA keyboard permissions, vendor agent/timer health |
+| Hardware/managed software | Preserve driver flavor, holds/pins, automatic security updates and IT-managed agents; GPU apps remain capability-gated | Driver activation/MOK/CUDA/Vulkan, power/lid/audio/KVM, ZSA keyboard permissions, vendor agent/timer health |
 | Routine maintenance | Required repository commands absent from PATH fail; custom missing steps may skip; daily resync/restart and weekly force/native-preview ordering retained | Repo pulls, first-run links, interrupted maintenance, user self-updaters and security-policy deferrals |
 
 Read-only regression seam: `tests/test_maintenance_decisions.py` accepts supplied
@@ -35,6 +35,6 @@ after execution is separately authorized; they were not executed for this change
 
 Remaining direct Arch calls are purpose-bound: AUR package/dependency scanning,
 Arch native status/install/update/removal, firmware/multilib, driver/source
-ownership checks, Arch-only disk provisioning, legacy Zed transition and NinjaOne
+ownership checks, Arch-only disk provisioning, legacy Zed transition and
 repackaging. These consumers remain needed and must not be removed merely because
 an Ubuntu backend exists.

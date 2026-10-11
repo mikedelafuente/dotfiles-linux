@@ -295,8 +295,6 @@ Implemented for [#142](https://github.com/mikedelafuente/dotfiles-linux/issues/1
 | Native packages, including Kitty / Ubuntu 26.04 | Existing configured Ubuntu and vendor APT repositories | `dfa-update-system`: APT refresh and upgrade with new dependencies permitted, removals refused |
 | Existing npm-installed Claude / Codex / either host | User-level npm packages through NVM | `dfa-update-npm-clis` daily step verifies global package and resolved launcher ownership; no root npm |
 | Recognized user-native Claude / either host | Official user-native launcher into `USER_HOME_DIR/.local/share/claude/versions/<version>` | `dfa-update-npm-clis` runs `claude update` as the user, independently of NVM/npm; native background updates retain user/IT policy; visible DISABLE_UPDATES is deferred |
-| NinjaOne / Arch | Existing opt-in repackaged vendor DEB | Agent self-updater plus existing weekly health check |
-| NinjaOne / Ubuntu | Opt-in vendor native DEB; existing IT-selected installations retained | Agent/patcher self-updater; weekly owned-agent repair or read-only IT-managed health check |
 
 No package or software source is installed by this slice. It adds no vendor
 repository, signing key, source fallback, app migration, or duplicate installation.
@@ -315,8 +313,7 @@ Ubuntu automatic security timers, blacklists, and service
 configuration are untouched (see [Ubuntu automatic updates](https://ubuntu.com/server/docs/how-to/software/automatic-updates/)).
 
 `dfa-daily` keeps its step order and aggregates failures. `dfa-weekly` still runs
-daily first, forces the native update, previews orphan/removal candidates, then
-handles NinjaOne (IT-managed installations receive read-only health checks). User-only sync steps are allowed on
+daily first, forces the native update, previews orphan/removal candidates. User-only sync steps are allowed on
 Ubuntu; shared bootstrap/sync and historical dotfile migrations use the same
 failure-preserving entrypoints. Daily auto-resync failures stay in its summary.
 Arch bootstrap/sync now preserve shared update/setup failures in their exit status.
@@ -342,7 +339,7 @@ guards. It executes only read-only library decisions. Bash syntax/ShellCheck and
 static inspection cover dispatch, update failures/stamps, AUR dependencies, and
 daily/weekly aggregate status. Actual pacman/yay/APT queries, transactions,
 hook forwarding/execution, sudo, removals, held/deferred updates, concurrency with
-security timers, NinjaOne, and full workstation behavior remain **unverified**.
+security timers, and full workstation behavior remain **unverified**.
 No OS-changing workflows, networked tests, services, GNOME/driver changes, or VMs
 are run for validation.
 
@@ -770,7 +767,6 @@ Profiles are **additive multi-select** — enable any combination on one machine
 | `zoom` (AUR) | Meetings | — |
 | `slack-desktop` (AUR) | Team chat | — |
 | `google-chrome` (AUR) | Work browser (Super+B when work is selected) | — |
-| NinjaOne (Arch: local `ninjaone-agent`; Ubuntu: vendor native DEB) | Opt-in endpoint agent; vendor/IT self-updates, `dfa-weekly` checks health; never enrolled by bootstrap/sync | `dfa-install-ninjaone`, `dfa-update-ninjaone`, `dfa-uninstall-ninjaone` |
 
 ### personal — `setup-steam.sh`, `setup-discord.sh`, `setup-firefox.sh`, `setup-mullvad.sh`
 
@@ -1135,72 +1131,6 @@ Wayland screen sharing/audio/video, and managed-workstation policies. No package
 manager, networked test, live app, service, or desktop workflow was executed as
 verification. Vendor Linux support is feasibility evidence, not runtime parity.
 
-### NinjaOne standalone lifecycle — Arch / Ubuntu 26.04
-
-Implemented for [#156](https://github.com/mikedelafuente/dotfiles-linux/issues/156).
-`dfa-install-ninjaone` remains standalone and work-profile gated (`--force` overrides
-that profile check). Bootstrap/profile setup never enrolls security agents.
-
-| Host / app | Source | Update owner and conflicts |
-|------------|--------|----------------------------|
-| Arch NinjaOne | Console-issued vendor enrollment DEB, repackaged locally as `ninjaone-agent` | Vendor `ninjarmm-patcher.timer`; weekly health/repair retains the existing Arch runtime dependencies. Arch remains vendor-unsupported. |
-| Ubuntu NinjaOne | Console-issued native amd64 DEB installed with APT, retaining vendor maintainer scripts | Vendor agent/patcher, without adding an APT repository. `dfa-update-ninjaone --url <newer URL>` only upgrades our recorded package and enrollment. Existing IT installations are retained. |
-| Ubuntu SentinelOne | Existing vendor/IT native `sentinelagent`; never installed directly by these commands | SentinelOne console/vendor owns updates and uninstall authorization. Presence alone does not prove NinjaOne enrollment; removal requires a separate explicit request. |
-
-Download trust: generated `https://*.ninjarmm.com` or `*.rmmservice.com` enrollment
-URLs only, without redirects; safe archive paths and regular-file/directory types,
-matching URL/DEB version, native agent package identity, and amd64 architecture.
-Changed layouts/links/identity fail closed. No generic token installer or source
-fallback is added. The enrollment DEB is private temporary data; installer output
-is withheld because vendor scripts can print enrollment secrets. No vendor digest
-is supplied by these tenant-specific URLs: trust is pinned HTTPS plus archive and
-identity checks, not independent signature verification.
-
-Credentials stay in `~/.config/dotfiles-arch/ninjaone.env`, atomically saved as a
-user-owned mode-600 regular file. Use the hidden prompt instead of `--url` to avoid
-shell history. Ubuntu installs record the exact native package plus a one-way
-enrollment digest in root-owned `/var/lib/dotfiles-arch/ninjaone-package` (644);
-a saved URL alone never adopts an existing IT-managed agent. Another enrollment,
-unknown package ownership, or redirected ownership state is preserved and reported.
-The existing bootstrap preferences and schema version do not change.
-
-`dfa-weekly` now calls native health handling on both hosts. Agent and patcher
-activity/enabled state are checked. Our recorded installs retain missing-binary
-reinstall and service repair; IT-managed/unrecognized installations get read-only
-checks and return failure when unhealthy, with no dependency installs, repair,
-replacement or URL-driven upgrades. No agent uses the general app-source updater.
-
-`dfa-uninstall-ninjaone [--keep-url]` requires a terminal and typing `remove`;
-`--yes` alone cannot authorize removal. On Ubuntu it runs our package's vendor
-`ninja-deb-uninstall.sh`, checks for remnants, and retains SentinelOne by default.
-`--remove-sentinelone` additionally requires typing `remove SentinelOne` and a
-hidden console-issued uninstall passphrase; it invokes the package-owned vendor
-`sentinelctl control uninstall` without forced cleanup. The passphrase is neither
-saved nor printed and is passed through stdin to avoid sudo command logging;
-SentinelOne's documented CLI itself receives it as an argument. Anti-tamper or
-uninstall failures remain failures for IT/vendor assistance. Successfully removed
-NinjaOne ownership state is cleared immediately, even if SentinelOne later fails,
-so weekly health cannot silently reinstall an intentionally removed agent.
-Ubuntu never applies Arch's forced dpkg cleanup, account/file deletion, or database
-record removal. Arch's existing repackaged-agent/SentinelOne workaround stays
-confined to Arch, subject to the same explicit removal confirmation. Unknown
-NinjaOne installations must be removed through their IT/vendor owner.
-
-Primary sources: [NinjaOne Linux installation](https://www.ninjaone.com/docs/new-to-ninjaone/agent-installation/linux-device-agent-installation/),
-[NinjaOne native removal](https://www.ninjaone.com/es/docs/administracion/agente-ninjaone-guia-de-eliminacion-de-agentes/),
-[SentinelOne's vendor uninstall command](https://github.com/Sentinel-One/ansible_collection_s1agents/blob/main/roles/s1_agent_uninstall/tasks/linux.yml),
-and [NinjaOne SentinelOne prerequisites](https://www.ninjaone.com/docs/integrations/vulnerability-management/uninstalling-sentinelone-agent/).
-These document the Linux/native lifecycle, not certification of Ubuntu 26.04.
-
-Validation: direct Bash syntax and ShellCheck only; archive/native dispatch and
-managed-agent boundaries statically inspected. `tests/test_ninjaone_decisions.py`
-provides pure supplied URL/version/enrollment/ownership/path checks with forbidden
-command guards and temporary state; it is deliberately **unrun**, along with the
-updated maintenance check. No installer, uninstaller, service/system mutation,
-networked test, test script or VM was executed. Vendor DEB layout/identity,
-Ubuntu 26.04 compatibility, enrollment, self-update, native uninstaller behavior
-and SentinelOne passphrase/anti-tamper behavior remain **unverified** on hardware.
-
 ### Personal apps on Ubuntu 26.04 (amd64)
 
 The additive `personal` profile selects all four existing setup scripts. Individual
@@ -1298,7 +1228,7 @@ runtime, and Mullvad daemon/account/VPN/DNS/kill-switch behavior.
 ## Final Ubuntu source / update audit
 
 Audited 2026-10-09 for [#162](https://github.com/mikedelafuente/dotfiles-linux/issues/162),
-against every selected setup in the single profile runner and opt-in NinjaOne.
+against every selected setup in the single profile runner.
 The detailed per-family source tables above remain the package-purpose catalog.
 [Evidence and disabled-update handling](docs/ubuntu-source-update-audit.md) explain
 why an update banner, installer rerun, package transaction, content download or
@@ -1407,7 +1337,6 @@ that an upstream project can never add a safe updater.
 | Adwaita Mono | Verified GNOME49 font archive | Pin + font setup/sync | Exact unpatched Adwaita Mono / P |
 | JetBrainsMono / MesloLGS / Ubuntu / FiraCode / Hack Nerd Fonts | Verified Nerd Fonts3.5.1 archives | Pin + font setup/sync | Exact Nerd Font families, not plain variants / P |
 | Catppuccin GTK / Papirus overlay / bat theme | Verified GTK1.0.3/overlay/theme pins; native Papirus/base bat preferred | Pin + relevant setup/sync; native base APT | GTK frozen archive; existing user themes retained / P, K |
-| NinjaOne / SentinelOne (opt-in/existing IT only) | Vendor native DEB or retained managed enrollment | Genuine vendor agent/patcher updater; weekly health, no bootstrap enrollment | Existing enrollment/security owner; separately authorized removal / M |
 
 All required apps fail on missing incompatible owners. GNOME50 is the accepted
 platform target; only incompatible Pop Shell above51 has the accepted feature gap.
