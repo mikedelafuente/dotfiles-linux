@@ -179,6 +179,34 @@ refresh_desktop_ides() {
   install_desktop_ide_release orca-deb
 }
 
+# Use bundled logos for our user entries; preserve existing icon customizations.
+desktop_ide_user_desktop() (
+  local app="$1" binary="$2" target="$3" icon stage
+  if [[ -f "$target" ]] && grep -q '^Icon=.' "$target"; then return 0; fi
+  case "$app" in
+    zed) icon="$USER_HOME_DIR/.local/zed.app/share/icons/hicolor/512x512/apps/zed.png" ;;
+    orca)
+      icon="$USER_HOME_DIR/.local/share/dotfiles-arch/orca/orca-ide.png"
+      if [[ ! -e "$icon" && ! -L "$icon" ]]; then
+        stage="$(mktemp -d)" || return 1
+        trap 'rm -rf "$stage"' EXIT
+        (cd "$stage" && "$binary" --appimage-extract 'usr/share/icons/hicolor/512x512/apps/orca-ide.png') || return 1
+        mkdir -p "$(dirname "$icon")" || return 1
+        install -m644 "$stage/squashfs-root/usr/share/icons/hicolor/512x512/apps/orca-ide.png" "$icon" || return 1
+      fi ;;
+    *) return 1 ;;
+  esac
+  [[ -f "$icon" && ! -L "$icon" ]] || { print_error_message "$app bundled icon missing or conflicting"; return 1; }
+  if [[ ! -e "$target" ]]; then
+    mkdir -p "$(dirname "$target")" || return 1
+    printf '[Desktop Entry]\nType=Application\nName=%s\nExec="%s" %%F\nTerminal=false\nCategories=Development;IDE;\nIcon=%s\n' \
+      "$app" "$binary" "$icon" >"$target" || return 1
+  else
+    sed -i '/^Icon=$/d' "$target" || return 1
+    printf 'Icon=%s\n' "$icon" >>"$target" || return 1
+  fi
+)
+
 # Setup preflights aliases/config/desktop destinations before acquisition.
 ensure_desktop_ide() {
   local app="$1" binary source version='' owner canonical alias desktop target root
@@ -255,12 +283,9 @@ ensure_desktop_ide() {
   for target in "$canonical" "$alias"; do
     type -P "$target" &>/dev/null || link_core_cli_config "$binary" "$USER_HOME_DIR/.local/bin/$target" || return 1
   done
-  # Package desktop entries remain vendor-owned. Self-updating apps get a separate
-  # minimal user entry only when absent; no directory association is declared.
-  if [[ "$owner" == self && ! -e "$USER_HOME_DIR/.local/share/applications/$desktop" ]]; then
-    mkdir -p "$USER_HOME_DIR/.local/share/applications" || return 1
-    printf '[Desktop Entry]\nType=Application\nName=%s\nExec="%s" %%F\nTerminal=false\nCategories=Development;IDE;\n' \
-      "$app" "$binary" >"$USER_HOME_DIR/.local/share/applications/$desktop" || return 1
+  # Package entries remain vendor-owned; repair missing logos in user entries.
+  if [[ "$owner" == self ]]; then
+    desktop_ide_user_desktop "$app" "$binary" "$USER_HOME_DIR/.local/share/applications/$desktop" || return 1
   fi
   if [[ "$app" == zed ]]; then
     link_editor_config "$DF_SCRIPT_DIR/../config/zed" "$USER_HOME_DIR/.config/zed" || return 1
