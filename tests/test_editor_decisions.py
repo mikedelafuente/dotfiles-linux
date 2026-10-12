@@ -147,6 +147,32 @@ def main():
         decide("desktop_ide_command", "zed", ok=False)
         for name in ("zed", "zeditor"):
             (guard / name).unlink()
+        # User launchers use bundled logos and repair old entries without icons.
+        zed_icon = Path(temp) / ".local/zed.app/share/icons/hicolor/512x512/apps/zed.png"
+        zed_icon.parent.mkdir(parents=True)
+        zed_icon.write_bytes(b"supplied logo")
+        desktop = Path(temp) / ".local/share/applications/dev.zed.Zed.desktop"
+        decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
+        assert f"Icon={zed_icon}\n" in desktop.read_text()
+        desktop.write_text('[Desktop Entry]\nExec="/supplied/zed" %F\n')
+        decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
+        repaired = desktop.read_bytes()
+        decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
+        assert desktop.read_bytes() == repaired
+        desktop.write_text('[Desktop Entry]\nIcon=custom-logo\n')
+        decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
+        assert desktop.read_text() == '[Desktop Entry]\nIcon=custom-logo\n'
+        appimage = Path(temp) / "Orca.AppImage"
+        appimage.write_text('#!/bin/sh\n'
+                            'test "$1" = --appimage-extract || exit 97\n'
+                            'mkdir -p "squashfs-root/$(dirname "$2")"\n'
+                            'printf logo > "squashfs-root/$2"\n')
+        appimage.chmod(0o755)
+        orca_desktop = desktop.with_name("dfa-orca.desktop")
+        decide("desktop_ide_user_desktop", "orca", str(appimage), str(orca_desktop))
+        orca_icon = Path(temp) / ".local/share/dotfiles-arch/orca/orca-ide.png"
+        assert orca_icon.read_bytes() == b"logo"
+        assert f"Icon={orca_icon}\n" in orca_desktop.read_text()
         root = Path(temp) / ".local/share/dotfiles-arch/editor-tools/nvim"
         launcher = Path(temp) / ".local/bin/nvim"
         decide("editor_upstream_layout_allowed", "nvim", str(root), str(launcher))
