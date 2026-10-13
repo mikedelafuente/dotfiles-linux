@@ -24,6 +24,7 @@ APT_VENDORS = {
     "claude": r"downloads\.claude\.ai/claude-code/apt",
     "chatgpt": r"persistent\.oaistatic\.com/codex-app-prod/linux/deb",
 }
+SLACK_GLOBAL_KEY = "/etc/apt/trusted.gpg.d/slack-desktop.gpg"
 
 
 def apt_key(app, text):
@@ -40,13 +41,16 @@ def apt_key(app, text):
     lines = [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")]
     if len(lines) == 1 and lines[0].startswith("deb "):
         suffix = r"\s+" + component
-        match = re.fullmatch(r"deb\s+\[([^]]+)\]\s+(\S+)\s+(\S+)" + suffix, lines[0])
-        if not match:
+        match = re.fullmatch(r"deb\s+(?:\[([^]]+)\]\s+)?(\S+)\s+(\S+)" + suffix, lines[0])
+        if not match or (match[1] is None and app != "slack"):
             raise ValueError("unscoped or malformed source")
-        options = dict(item.split("=", 1) for item in match[1].split())
+        options = dict(item.split("=", 1) for item in (match[1] or "").split())
         if set(options) - {"arch", "signed-by"} or options.get("arch", "amd64") != "amd64":
             raise ValueError("unsupported source options")
         url, suite, key = match[2], match[3], options.get("signed-by", "")
+        # Slack's daily cron rewrites slack.list without signed-by and installs this global key.
+        if match[1] is None:
+            key = SLACK_GLOBAL_KEY
     else:
         fields = {}
         for line in lines:
@@ -64,7 +68,7 @@ def apt_key(app, text):
         suites[app] = url.rstrip("/").rsplit("/", 1)[-1]
     if url.rstrip("/") not in urls or suite != suites.get(app, "stable"):
         raise ValueError("unexpected vendor source")
-    if not re.fullmatch(r"/(?:etc/apt/keyrings|usr/share/keyrings)/[A-Za-z0-9_.-]+\.(?:gpg|asc)", key):
+    if key != SLACK_GLOBAL_KEY and not re.fullmatch(r"/(?:etc/apt/keyrings|usr/share/keyrings)/[A-Za-z0-9_.-]+\.(?:gpg|asc)", key):
         raise ValueError("repository-scoped signing key required")
     return key
 

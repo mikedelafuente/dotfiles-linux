@@ -1079,6 +1079,9 @@ Source registration is idempotent, uses a repository-scoped `Signed-By`, and
 preserves existing compatible scoped sources. New registrations use vendor
 filenames (`google-chrome.sources`, `slack.list`) and keys in
 `/usr/share/keyrings/{google-chrome,slack}.gpg` to avoid a second managed feed.
+Slack's daily cron rewrites `slack.list` to its unscoped vendor line and
+installs `/etc/apt/trusted.gpg.d/slack-desktop.gpg`; that exact line is accepted,
+with the global key still checked against the pinned fingerprint.
 Candidate policy must name the selected vendor, excluding local-only packages or
 third-party candidates. Disabled, malformed, global-trust-only, duplicate, or
 unknown feeds fail without silent source migration; repair them explicitly.
