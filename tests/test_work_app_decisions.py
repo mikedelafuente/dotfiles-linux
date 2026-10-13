@@ -50,7 +50,7 @@ def main():
             decide("work_app_selection", "ubuntu", app, "true", "owned", "false", "none", ok=False)
         decide("work_app_selection", "ubuntu", "zoom", "true", "owned", "false", "apt", ok=False)
         decide("work_app_selection", "fedora", "chrome", "false", "", "false", "none", ok=False)
-        # APT parsing retains a scoped vendor source; duplicate/disabled/unscoped sources fail.
+        # APT parsing retains a scoped vendor source or Slack's cron-written line; duplicate/disabled/other unscoped sources fail.
         source = "deb [arch=amd64 signed-by=/etc/apt/keyrings/slack.gpg] https://packagecloud.io/slacktechnologies/slack/debian/ jessie main"
         decide("work_app_apt_key", "slack", source, expected="/etc/apt/keyrings/slack.gpg")
         chrome = """X-Repolib-Name: Google Chrome
@@ -61,6 +61,9 @@ Components: main
 Architectures: amd64
 Signed-By: /usr/share/keyrings/google-chrome.gpg"""
         decide("work_app_apt_key", "chrome", chrome, expected="/usr/share/keyrings/google-chrome.gpg")
+        unscoped = source.replace(" [arch=amd64 signed-by=/etc/apt/keyrings/slack.gpg]", "")
+        decide("work_app_apt_key", "slack", unscoped, expected="/etc/apt/trusted.gpg.d/slack-desktop.gpg")
+        decide("work_app_apt_key", "spotify", "deb https://repository.spotify.com stable non-free", ok=False)
         for bad in (source.replace(" signed-by=/etc/apt/keyrings/slack.gpg", ""),
                     "# " + source, source + "\n" + source,
                     source.replace("jessie", "resolute"), source.replace("https:", "http:"),

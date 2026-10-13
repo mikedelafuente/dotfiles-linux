@@ -226,14 +226,14 @@ packages() {
 aliases() {
     # Create a temporary file for bat to display with syntax highlighting
     local temp_file=$(mktemp)
-    
+
     {
         echo ""
         echo "╔══════════════════════════════════════════════════════════════════════════════╗"
         echo "║                           📋 Custom Aliases                                  ║"
         echo "╚══════════════════════════════════════════════════════════════════════════════╝"
         echo ""
-        
+
         # Display aliases in a formatted table
         alias | sed 's/^alias //' | awk -F= '{
             alias=$1
@@ -241,13 +241,13 @@ aliases() {
             gsub(/^'\''|'\''$/, "", cmd)
             printf "  %-12s → %s\n", alias, cmd
         }' | sort
-        
+
         echo ""
         echo "╔══════════════════════════════════════════════════════════════════════════════╗"
         echo "║                         ⌨️  Custom Key Bindings                              ║"
         echo "╚══════════════════════════════════════════════════════════════════════════════╝"
         echo ""
-        
+
         # Display key bindings in readable format - only show our custom bindings
         # These are configured in ~/.inputrc (readline-compatible)
         printf "  %-22s → %s\n" "Tab" "Cycle through completions (menu-style)"
@@ -271,8 +271,8 @@ aliases() {
         echo ""
         echo "  💡 Note: Editing keys are configured in ~/.inputrc; Ctrl+R/T and Alt+C come from fzf"
         echo "     Run 'bat ~/.inputrc' to see full readline configuration"
-        
-        
+
+
         echo ""
         echo "╔══════════════════════════════════════════════════════════════════════════════╗"
         echo "║                        🛠️  Installed Tools                                   ║"
@@ -314,9 +314,9 @@ aliases() {
         echo '  Agent updates: dfa-update-npm-clis (user npm; native Claude updater); Arch opencode/ChatGPT and Ubuntu ChatGPT use dfa-update-system'
         echo "  Tools catalog: run 'packages' (what every installed package is for)"
         echo "  Source of truth: PACKAGES.md in the dotfiles-arch repo → ~/.packages.md"
-        
+
         if command -v zoxide &> /dev/null; then
-            
+
             echo ""
             echo "╔══════════════════════════════════════════════════════════════════════════════╗"
             echo "║                        🧭 Zoxide Usage (Smart Navigation)                    ║"
@@ -330,7 +330,7 @@ aliases() {
             echo "  💡 Zoxide learns from your cd usage and lets you jump to frequently"
             echo "     used directories by typing partial names. Just use it for a while!"
         fi
-        
+
         if command -v tmux &> /dev/null; then
 
             echo ""
@@ -351,24 +351,24 @@ aliases() {
             echo ""
             echo "  💡 Run agents (claude, etc.) inside panes"
         fi
-        
+
         if command -v cursor &> /dev/null; then
             echo ""
             echo "🖥️  Editors:"
             echo "  cursor    → Cursor IDE"
             echo "  claude    → Claude Code CLI (if installed)"
         fi
-        
+
         echo ""
     } > "$temp_file"
-    
+
     # Display with bat if available, otherwise use cat
     if command -v bat &> /dev/null; then
         bat --style=plain --paging=never "$temp_file"
     else
         cat "$temp_file"
     fi
-    
+
     rm -f "$temp_file"
 }
 
@@ -447,7 +447,7 @@ if [ -d "$sonar_bin" ]; then
 fi
 
 # Default to production read-only SSO profile
-export AWS_PROFILE=production-readonly
+export AWS_PROFILE=sso
 export AWS_DEFAULT_REGION=us-east-1
 
 # Keep zoxide last: prompt initializers such as Starship replace PROMPT_COMMAND.
