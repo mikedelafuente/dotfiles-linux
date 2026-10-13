@@ -159,6 +159,9 @@ def main():
         repaired = desktop.read_bytes()
         decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
         assert desktop.read_bytes() == repaired
+        desktop.write_text(f'[Desktop Entry]\nIcon={Path(temp)}/missing.png\n')
+        decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
+        assert desktop.read_text() == f'[Desktop Entry]\nIcon={zed_icon}\n'
         desktop.write_text('[Desktop Entry]\nIcon=custom-logo\n')
         decide("desktop_ide_user_desktop", "zed", "/supplied/zed", str(desktop))
         assert desktop.read_text() == '[Desktop Entry]\nIcon=custom-logo\n'

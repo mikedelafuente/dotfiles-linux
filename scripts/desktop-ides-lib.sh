@@ -170,6 +170,21 @@ PY
 
 # Existing DEBs notify only: the common updater explicitly refreshes this owner.
 refresh_desktop_ides() {
+  local app binary source desktop
+  for app in zed orca; do
+    binary="$(desktop_ide_command "$app")" || continue
+    source="$(desktop_ide_source "$app" "$binary")" || return 1
+    case "$app:$source" in
+      zed:user) desktop=dev.zed.Zed.desktop ;;
+      orca:appimage) desktop=dfa-orca.desktop ;;
+      *) continue ;;
+    esac
+    desktop="$USER_HOME_DIR/.local/share/applications/$desktop"
+    # Only entries launching our binary are ours to repair.
+    if [[ -f "$desktop" && ! -L "$desktop" ]] && grep -Fq "$binary" "$desktop"; then
+      desktop_ide_user_desktop "$app" "$binary" "$desktop" || return 1
+    fi
+  done
   [[ "$WORKSTATION_DISTRO" == ubuntu ]] || return 0
   native_package_installed orca-ide || return 0
   local binary source
@@ -179,10 +194,12 @@ refresh_desktop_ides() {
   install_desktop_ide_release orca-deb
 }
 
-# Use bundled logos for our user entries; preserve existing icon customizations.
+# Use bundled logos for our user entries; preserve working icon customizations.
 desktop_ide_user_desktop() (
-  local app="$1" binary="$2" target="$3" icon stage
-  if [[ -f "$target" ]] && grep -q '^Icon=.' "$target"; then return 0; fi
+  local app="$1" binary="$2" target="$3" icon stage current=''
+  [[ ! -f "$target" ]] || current="$(sed -n 's/^Icon=//p' "$target" | head -n1)"
+  # Absolute icon paths break when self-updates replace the app tree.
+  if [[ -n "$current" && ( "$current" != /* || -f "$current" ) ]]; then return 0; fi
   case "$app" in
     zed) icon="$USER_HOME_DIR/.local/zed.app/share/icons/hicolor/512x512/apps/zed.png" ;;
     orca)
@@ -202,7 +219,7 @@ desktop_ide_user_desktop() (
     printf '[Desktop Entry]\nType=Application\nName=%s\nExec="%s" %%F\nTerminal=false\nCategories=Development;IDE;\nIcon=%s\n' \
       "$app" "$binary" "$icon" >"$target" || return 1
   else
-    sed -i '/^Icon=$/d' "$target" || return 1
+    sed -i '/^Icon=/d' "$target" || return 1
     printf 'Icon=%s\n' "$icon" >>"$target" || return 1
   fi
 )
