@@ -941,7 +941,7 @@ Favor true self-updating user installations on Ubuntu. Existing compatible sourc
 retain their owners. AppImage replacements keep the fixed pathname so command
 links and desktop entries survive. No `orca` alias is created: that name belongs
 to GNOME's screen reader. User IDE launchers use the bundled logos; setup repairs
-missing icons while preserving custom icons. No installer script, PPA, foreign APT suite, source
+missing or dangling icons (also during daily updates) while preserving working custom icons. No installer script, PPA, foreign APT suite, source
 fallback, sandbox bypass, or driver replacement is added. Shared orchestration and standalone setup use these same source decisions.
 
 Evidence checked 2026-10-08: [Zed Linux installation](https://zed.dev/docs/linux),
