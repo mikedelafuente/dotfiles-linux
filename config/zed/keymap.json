@@ -11,5 +11,14 @@
     "bindings": {
       "ctrl-alt-t": "agent::NewTerminalThread"
     }
+  },
+  {
+    "context": "Terminal",
+    "bindings": {
+      "shift-enter": [
+        "terminal::SendText",
+        "\u001b\r"
+      ]
+    }
   }
 ]
