@@ -23,6 +23,8 @@ from skill_discovery import discover_skills
 
 HOME_FILES = {".bashrc", ".inputrc", ".profile", ".gitignore_global", ".nvim-cheatsheet.md",
               ".welcome.md", ".packages.md", ".tmux.conf"}
+# App-written configs: copied once when absent, then owned by the app and allowed to drift.
+SEEDED_CONFIGS = {"zed/settings.json", "zed/keymap.json", "Code/User/settings.json"}
 SECRET_NAMES = {"auth.json", "models-store.json", "user_credentials.json", ".env",
                 ".dotfiles_bootstrap_config", ".git-credentials", ".netrc", ".npmrc",
                 "credentials.json", "auth.toml", ".ssh", ".claude.json"}
@@ -148,6 +150,7 @@ class Deployment:
         self.previous = self.root / "previous"
         self.stage = self.root / "staging"
         self.journal = self.root / "transaction.json"
+        self.seeds = {str(self.home / ".config" / rel): "config/" + rel for rel in SEEDED_CONFIGS}
 
     @contextmanager
     def locked(self, recovery=False):
@@ -395,7 +398,7 @@ class Deployment:
                         sub = relative.relative_to("home")
                         if str(sub) in HOME_FILES or str(sub).startswith(".local/bin/"):
                             add_link(self.home / sub, key, src)
-                    elif relative.parts[0] == "config":
+                    elif relative.parts[0] == "config" and str(self.home / ".config" / relative.relative_to("config")) not in self.seeds:
                         add_link(self.home / ".config" / relative.relative_to("config"), key, src)
                     elif relative.parts[0] == "pi" and "extensions" not in relative.parts:
                         add_link(pi / relative.relative_to("pi"), key, src)
@@ -617,8 +620,18 @@ class Deployment:
         write_text(path, text, mode)
 
     def snapshots(self, links, old):
+        # Seeded targets leave link management; only an old managed link is still replaced.
         return {target: self.link_snapshot(target, links.get(target, old.get(target)), old)
-                for target in links.keys() | old.keys()}
+                for target in links.keys() | old.keys()
+                if target not in self.seeds or (link_value(Path(target)) or "").startswith(str(self.root) + "/")}
+
+    def seed(self):
+        for target, key in self.seeds.items():
+            path, source = Path(target), self.active / key
+            safe_parents(path, self.home)
+            if not path.exists() and not path.is_symlink() and source.is_file():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, path)
 
     def same_copy(self, left, right):
         def entries(root):
@@ -659,6 +672,7 @@ class Deployment:
                 claude = self.claude_snapshot()
                 new_claude = self.claude_text(claude["text"] or "")
                 if tree and not old.get("legacy") and sources == old["sources"] and {k: v['artifact'] for k,v in links.items()} == {k: v['artifact'] for k,v in old['links'].items()} and self.same_copy(incoming, tree) and claude["text"] == new_claude:
+                    self.seed()
                     print("Installed copy already current")
                     return
                 next_folder = self.root / ("green" if tree == self.root / "blue" or old.get("legacy") else "blue")
@@ -713,6 +727,7 @@ class Deployment:
                     transaction["phase"] = "committed"
                     write_json(self.journal, transaction)
                     self.finish(transaction)
+                    self.seed()
                 except BaseException:
                     # A hard interruption leaves the journal for recover; ordinary failures undo activation.
                     if transaction["phase"] == "prepared":
@@ -820,6 +835,7 @@ class Deployment:
             if not tree or backup not in {str(self.root / "blue"), str(self.root / "green")} or backup == str(tree):
                 raise Pending("No previous installed copy")
             desired = self.state(Path(backup))
+            desired["links"] = {k: v for k, v in desired["links"].items() if k not in self.seeds}
             claude = self.claude_snapshot()
             transaction = {"previous": str(tree), "next": backup, "backup_before": backup,
                            "backup_after": str(tree), "links": self.snapshots(desired["links"], old["links"]),
