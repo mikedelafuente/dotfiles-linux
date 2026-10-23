@@ -191,7 +191,7 @@ def full_repository():
         source.mkdir(); home.mkdir()
         tracked = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z"], check=True, capture_output=True).stdout
         paths = {os.fsdecode(p) for p in tracked.split(b"\0") if p}
-        paths |= {"scripts/deployment.py", "home/.local/bin/dfa-deploy", "migrations/v4-to-v5-migration.sh", "docs/deployment.md", "migrations/v5-to-v6-migration.sh"}
+        paths |= {"scripts/deployment.py", "home/.local/bin/dfa-deploy", "migrations/v4-to-v5-migration.sh", "docs/deployment.md", "migrations/v5-to-v6-migration.sh", "migrations/v6-to-v7-migration.sh"}
         for name in paths:
             src = ROOT / name; dst = source / name
             if not src.exists() and not src.is_symlink():
@@ -226,7 +226,7 @@ def full_repository():
         assert "v4" in run("scripts/migrate.sh", "--dry-run").stdout
         run("scripts/migrate.sh")
         stamp = home / ".config/dotfiles-arch/.dotfiles_schema_version"
-        assert stamp.read_text().strip() == "6"
+        assert stamp.read_text().strip() == "7"
         installed = home / ".local/share/workstation/config"
         # The installed manager must identify the edit checkout, not its runtime.
         listed = run(str(installed / "scripts/sync-sources.sh"), "list").stdout
@@ -265,7 +265,7 @@ def full_repository():
         assert installed.resolve() == legacy / "tree"
         (source / "invalid.json").unlink()
         run("scripts/migrate.sh")
-        assert stamp.read_text() == "6\n" and not legacy.exists()
+        assert stamp.read_text() == "7\n" and not legacy.exists()
         assert installed.resolve() == state_root / "green"
         assert (state_root / "previous/home/.bashrc").read_text() == "# preserved installed change\n"
         # The legacy controller rejects blue/green. Its exact bytes must be retained,
@@ -336,7 +336,55 @@ def full_repository():
         print("PASS: fresh schema migration, daily ordering, repeated switching, source-independent runtime")
 
 
+def seeded_configs():
+    """App-written configs: old managed link -> copy, app drift survives, absent -> reseeded."""
+    with tempfile.TemporaryDirectory(prefix="dfa-seeded-") as raw:
+        temp = Path(raw); home, source = temp / "home", temp / "source"
+        (source / "config/zed").mkdir(parents=True); (source / "config/kitty").mkdir(); home.mkdir()
+        (source / "config/zed/keymap.json").write_text("[]\n")
+        (source / "config/kitty/kitty.conf").write_text("font_size 11\n")
+        (source / "scripts").mkdir(); (source / "scripts/sync.sh").write_text("#!/bin/bash\nexit 0\n")
+        for args in (["init", "-b", "main"], ["remote", "add", "origin", "https://github.com/example/source.git"],
+                     ["add", "."], ["-c", "user.name=F", "-c", "user.email=f@example.test", "commit", "-m", "fixture"]):
+            subprocess.run(["git", "-C", str(source), *args], check=True, capture_output=True)
+        env = dict(os.environ, HOME=str(home), USER_HOME_DIR=str(home),
+                   CODEX_HOME=str(home / ".codex"), PI_CODING_AGENT_DIR=str(home / ".pi/agent"))
+        def run(*args):
+            result = subprocess.run(["python3", str(CLI), *args], env=env, capture_output=True, text=True)
+            assert result.returncode == 0, result.stdout + result.stderr
+        run("deploy", "--source", str(source))
+        keymap, kitty = home / ".config/zed/keymap.json", home / ".config/kitty/kitty.conf"
+        active = home / ".local/share/workstation/config"
+        assert kitty.is_symlink() and not keymap.is_symlink() and keymap.read_text() == "[]\n"
+        # Simulate a v6 install where the keymap was still a managed link.
+        records = active / ".dfa/links.json"
+        links = json.loads(records.read_text()); links[str(keymap)] = "config/zed/keymap.json"
+        records.write_text(json.dumps(links)); keymap.unlink(); keymap.symlink_to(active / "config/zed/keymap.json")
+        (source / "config/zed/keymap.json").write_text("[1]\n")
+        run("deploy")
+        assert not keymap.is_symlink() and keymap.read_text() == "[1]\n", "Managed link must become a copy"
+        keymap.write_text("app edit\n"); (source / "config/zed/keymap.json").write_text("[2]\n")
+        run("deploy")
+        assert keymap.read_text() == "app edit\n", "App edits must survive deploy"
+        run("rollback")
+        assert keymap.read_text() == "app edit\n", "Rollback must not relink seeded configs"
+        keymap.unlink(); run("deploy")
+        assert keymap.read_text() == "[2]\n", "Absent seeded config must be copied again"
+        # Migration replaces only links into the installed copy.
+        keymap.unlink(); keymap.symlink_to(active / "config/zed/keymap.json")
+        settings = home / ".config/zed/settings.json"; settings.symlink_to(temp / "foreign")
+        # Stub header: the real one resolves the invoking user's real home.
+        (temp / "migrations").mkdir(); (temp / "scripts").mkdir()
+        shutil.copy2(ROOT / "migrations/v6-to-v7-migration.sh", temp / "migrations")
+        (temp / "scripts/dotheader.sh").write_text(f'USER_HOME_DIR="{home}"\nDF_SCRIPT_DIR="{ROOT}/scripts"\nsource "{ROOT}/scripts/fn-lib.sh"\n')
+        subprocess.run(["bash", str(temp / "migrations/v6-to-v7-migration.sh")], env=env, check=True, capture_output=True)
+        assert not keymap.is_symlink() and keymap.read_text() == "[2]\n"
+        assert settings.is_symlink(), "Foreign links must be preserved"
+        print("PASS: seeded app configs copy once, drift freely and migrate from managed links")
+
+
 if __name__ == "__main__":
     main()
     working_tree_deployment()
     full_repository()
+    seeded_configs()

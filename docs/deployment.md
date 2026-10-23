@@ -70,6 +70,11 @@ foreign symlinks and redirected parents. Legacy directory links must not hide
 unknown descendants. Installed files inside blue/green are disposable; put
 unmanaged files outside those folders.
 
+App-written configs (`SEEDED_CONFIGS` in `scripts/deployment.py`: Zed settings and
+keymap, VS Code user settings) are copied once when absent, never linked. The app
+owns the copy afterward; deploy and rollback leave it alone, so it may drift from
+source. Delete it to receive the source copy on the next deploy.
+
 First-install Ubuntu bootstrap explicitly relocates existing regular top-level
 managed dotfiles to a private `~/.dfa-bootstrap-backup.*` directory and reports
 each move before deployment. This bootstrap-only exception leaves symlinks,
@@ -138,6 +143,9 @@ The backup keeps a blue/green-compatible deployment controller so maintenance
 works after rollback. Its original controller bytes are retained as inert backup
 data in `.dfa/legacy-deployment.py`; other installed files keep their original bytes.
 Recover an outstanding v5 activation with the installed v5 manager before migration.
+
+Schema v7 (`v6-to-v7-migration.sh`) replaces seeded-config links that point into the
+installed copy with plain copies of the same bytes. Real files and foreign links stay.
 
 Daily ordering: refresh repositories → acquire/deploy the primary source → at most
 one restart into updated helpers → migrations → native/app updates → resource sync.
