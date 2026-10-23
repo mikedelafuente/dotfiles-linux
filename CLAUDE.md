@@ -88,6 +88,6 @@ Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation
 - Shell changes: `bash -n <paths>` and `shellcheck -x <paths>`; CI uses `scripts/check.sh`.
   Run relevant decision checks with supplied facts and temporary state. Report unrun checks.
 - Work on a feature branch; never commit directly to `main`.
-  After merging, delete local/remote feature branches and return to clean `main`.
+  After merging, delete local feature branches and return to clean `main`.
 - Answer briefly: result first, commands/paths in inline code, no filler.
   Shared style: [skills owner](https://github.com/mikedelafuente/skills/tree/main/rules).
