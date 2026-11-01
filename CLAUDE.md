@@ -20,12 +20,11 @@ Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation
 
 ## Shared source and deployment
 
-- Before shared edits, run `dfa-deploy source`; edit only the verified checkout.
-  Missing source/provenance: stop shared edits and restore/rebind. For extra sources,
-  use `dfa-deploy source --source-id ID`. Installed copies are never source checkouts.
+- The generated global guidance (`~/.claude/dfa-deployment.md`, the harnesses' installed
+  `AGENTS.md`) already covers `dfa-deploy source`, rebind, extra sources and installed copies.
+  Missing source/provenance: stop shared edits and restore/rebind.
 - Runtime links use `~/.local/share/workstation/config`, pointing to `blue` or `green`.
-  Deploy replaces installed edits from source, validates before activation and keeps one backup.
-  Machine-local settings stay outside managed files. No automatic merging, override or capture.
+  Deploy validates before activation and keeps one backup. No automatic merging, override or capture.
 - Verify using temporary fixtures. Implementation does not authorize deployment,
   migration, package changes, services, GNOME/driver changes or VM operations on this workstation.
 
