@@ -16,7 +16,7 @@ fi
 print_tool_setup_start "dev Command (Development Launcher)"
 
 REPO_ROOT="$(cd "$CURRENT_FILE_DIR/.." && pwd)"
-DEV_HELPERS=(dev dotfiles-arch-lib.sh nvim-reveal-edit dfa-update-system)
+DEV_HELPERS=(claude-statusline dev dotfiles-arch-lib.sh nvim-reveal-edit dfa-update-system)
 for helper in "${DEV_HELPERS[@]}"; do
     core_cli_link_allowed "$REPO_ROOT/home/.local/bin/$helper" "$USER_HOME_DIR/.local/bin/$helper" || {
         print_error_message "Launcher/hook conflict: $helper; preserved"
