@@ -235,9 +235,9 @@ killing its old session, quotes the socket command for Bash, and passes the sess
 name as a child-shell argument in Kitty. Reveal hooks still share socket naming,
 `jq`, and `nvim --server --remote-expr`; existing Claude/Codex hook commands remain
 valid. Docker Engine/Compose/Buildx and hook installation remain separate slices.
-Dev setup also links `claude-statusline`, `dev`, `nvim-reveal-edit`, `dfa-update-system`,
-and their shared `dotfiles-arch-lib.sh` into `USER_HOME_DIR/.local/bin`; it preflights all
-five for user-file/unrelated-link conflicts. This enables the launcher, existing
+Dev setup also links `dev`, `nvim-reveal-edit`, `dfa-update-system`, and their
+shared `dotfiles-arch-lib.sh` into `USER_HOME_DIR/.local/bin`; it preflights all
+four for user-file/unrelated-link conflicts. This enables the launcher, existing
 hook command, and explicit refresh on a fresh Ubuntu host without full dotfile
 linking. It does not install agent CLIs or register new harness hooks.
 

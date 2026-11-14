@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code status line: labeled fields in Catppuccin Mocha colors.
+# Claude Code status line starting point: labeled fields in Catppuccin Mocha colors. Copy it; setup never installs it.
 # shellcheck disable=SC1003 # The art uses literal backslashes in single quotes.
 input=$(cat)
 field() { echo "$input" | jq -r "$1 // empty"; }
