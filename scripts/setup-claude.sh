@@ -31,13 +31,4 @@ ensure_json_hook_registered "$CLAUDE_SETTINGS_FILE" '{}' \
   '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + [{"matcher": "Edit|Write|NotebookEdit", "hooks": [{"type": "command", "command": "nvim-reveal-edit", "timeout": 5}]}])' \
   "the Neovim reveal-on-edit PostToolUse hook"
 
-# --------------------------
-# Status line: claude-statusline, linked by setup-dev.sh
-# --------------------------
-# Any status line already set, including a hand-made one, is left alone.
-ensure_json_hook_registered "$CLAUDE_SETTINGS_FILE" '{}' \
-  '.statusLine != null' \
-  '.statusLine = {"type": "command", "command": "claude-statusline", "refreshInterval": 1}' \
-  "the claude-statusline status line"
-
 print_tool_setup_complete "Claude Code"
