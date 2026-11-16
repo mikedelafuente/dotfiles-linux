@@ -43,7 +43,8 @@ reset_in() {
 parts=()
 add() { parts+=("$1"); }
 
-dir="${cwd/#$HOME/\~}"
+top=$(git -C "$cwd" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)
+dir=$(basename "${top:-$cwd}")
 branch=$(git -C "$cwd" --no-optional-locks symbolic-ref --short -q HEAD 2>/dev/null)
 if [ -n "$branch" ]; then
   dirty=''
