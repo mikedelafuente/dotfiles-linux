@@ -14,6 +14,14 @@ seven_day=$(field '.rate_limits.seven_day.used_percentage')
 five_hour_reset=$(field '.rate_limits.five_hour.resets_at')
 weekly_reset=$(field '.rate_limits.seven_day.resets_at')
 
+# Saves the account's limits for skills that pace long runs, which can't see them. Every session writes the same numbers.
+if [ -n "$five_hour$seven_day" ]; then
+  usage=~/.claude/usage.json
+  echo "$input" | jq -c '{five_hour: .rate_limits.five_hour.used_percentage, seven_day: .rate_limits.seven_day.used_percentage,
+    five_hour_resets_at: .rate_limits.five_hour.resets_at, seven_day_resets_at: .rate_limits.seven_day.resets_at, at: (now | floor)}' \
+    > "$usage.$$" && mv "$usage.$$" "$usage"
+fi
+
 # Catppuccin Mocha
 blue='137;180;250'; green='166;227;161'; mauve='203;166;247'; overlay='108;112;134'
 peach='250;179;135'; red='243;139;168'; teal='148;226;213'; yellow='249;226;175'
