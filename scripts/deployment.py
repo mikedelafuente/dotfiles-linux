@@ -19,7 +19,6 @@ from urllib.parse import urlsplit, urlunsplit
 import uuid
 
 sys.dont_write_bytecode = True
-from skill_discovery import discover_skills
 
 HOME_FILES = {".bashrc", ".inputrc", ".profile", ".gitignore_global", ".nvim-cheatsheet.md",
               ".welcome.md", ".packages.md", ".tmux.conf"}
@@ -247,65 +246,13 @@ class Deployment:
             raise Pending("Recorded source commit is not in this checkout history; restore the recorded source")
         return path
 
-    def source_path(self, identifier):
-        if identifier == "primary":
-            return self.source()
-        _, state = self.current()
-        origin = next((s for s in state["sources"] if s["id"] == identifier), None)
-        if origin is None:
-            raise Pending("Select a recorded source ID from dfa-deploy status")
-        path = Path(origin["path"])
-        if not path.is_dir() or path.is_relative_to(self.root):
-            raise Pending("Extra source unavailable; restore or explicitly rebind its source ID")
-        if origin["commit"]:
-            url = clean_url(git(path, "remote", "get-url", "origin").stdout.decode())
-            if url != origin["url"] or git(path, "merge-base", "--is-ancestor", origin["commit"], "HEAD", check=False).returncode:
-                raise Pending("Extra source provenance differs; explicitly rebind the recorded source ID")
-        return path
-
     def sources(self, primary):
-        entries = [(primary, "standard", False, "primary")]
-        _, installed = self.current()
-        previous_ids = {}
-        for source in installed["sources"][1:]:
-            name = self.source_name(Path(source["path"]), previous_ids.values()) if installed.get("legacy") else source["id"]
-            previous_ids[(source["path"], source["type"])] = name
-        previous_ids.update(getattr(self, "rebound_sources", {}))
-        config = self.home / ".config/dotfiles-arch/sync-sources"
-        if config.exists():
-            for line in getattr(self, "registry_new", config.read_text()).splitlines():
-                if not line.strip() or line.lstrip().startswith("#"):
-                    continue
-                spec, *options = line.split("\t")
-                kind, sep, path = spec.partition(":")
-                if not sep:
-                    kind, path = "standard", spec
-                if kind not in {"standard", "skills-root", "rules-root", "extensions-root"}:
-                    raise Pending("Unknown extra source type")
-                if options and options != ["overwritable=true"] and options != ["overwritable=false"]:
-                    raise Pending("Invalid overwritable value")
-                path = Path(path.replace("~", str(self.home), 1) if path.startswith("~/") else path).resolve()
-                if not path.is_dir():
-                    raise Pending(f"Configured source unavailable: {path}; restore or unregister it explicitly")
-                if installed.get("legacy"):
-                    for source in installed["sources"][1:]:
-                        if source["path"] == str(path) and source["type"] == kind:
-                            self.source_path(source["id"])
-                name = previous_ids.get((str(path), kind), self.source_name(path, previous_ids.values()))
-                if name in {s["id"] for s in installed["sources"][1:]} and name not in getattr(self, "rebound_sources", {}).values():
-                    self.source_path(name)
-                if (path, kind) in {(p, k) for p, k, _, _ in entries}:
-                    raise Pending("Duplicate registered source")
-                previous_ids[(str(path), kind)] = name
-                entries.append((path, kind, options == ["overwritable=true"], name))
-        return entries
+        # One source: this checkout. Nothing is linked into an agent's folders (skills,
+        # rules, AGENTS.md, Pi data), so there are no extra sources to register.
+        return [(primary, "standard", False, "primary")]
 
     def inventory(self, primary, incoming):
         artifacts, links, sources = {}, {}, []
-        roots, overwritable, rules_bodies = [], [], []
-        rule_entries = []
-        pi = lexical(os.environ.get("PI_CODING_AGENT_DIR", self.home / ".pi/agent"))
-        codex = lexical(os.environ.get("CODEX_HOME", self.home / ".codex"))
         def add_link(target, relative, legacy):
             links[str(target)] = {"artifact": relative, "legacy": str(lexical(legacy))}
         for path, kind, can_replace, name in self.sources(primary):
@@ -400,138 +347,9 @@ class Deployment:
                             add_link(self.home / sub, key, src)
                     elif relative.parts[0] == "config" and str(self.home / ".config" / relative.relative_to("config")) not in self.seeds:
                         add_link(self.home / ".config" / relative.relative_to("config"), key, src)
-                    elif relative.parts[0] == "pi" and "extensions" not in relative.parts:
-                        add_link(pi / relative.relative_to("pi"), key, src)
-            staged = incoming / prefix
-            if kind == "standard" and (staged / "pi").is_dir():
-                settings = read_json(pi / "settings.json", {})
-                if not isinstance(settings, dict) or not isinstance(settings.get("packages", []), list):
-                    raise Pending("Invalid Pi package settings; preserve and reconcile them before source sync")
-                legacy_skill_paths = {str(self.home / ".claude/skills"), str(codex / "skills")}
-                for value in settings.get("skills", []) if isinstance(settings.get("skills", []), list) else []:
-                    if isinstance(value, str) and value.replace("$HOME", str(self.home)).replace("~", str(self.home), 1) in legacy_skill_paths:
-                        raise Pending("Pi settings also load cross-harness skills; remove those legacy paths with the standalone owner before copy syncing")
-                package = read_json(staged / "package.json", {})
-                for entry in settings.get("packages", []):
-                    value = entry.get("source") if isinstance(entry, dict) else entry
-                    if not isinstance(value, str):
-                        continue
-                    if value.startswith("npm:"):
-                        match = re.match(r"npm:((?:@[^/]+/)?[^@]+)", value)
-                        duplicate = isinstance(package, dict) and match and match[1] == package.get("name")
-                    elif value.startswith(("git:", "git+", "github:", "https://", "http://", "ssh://")):
-                        raw = value.removeprefix("git:").removeprefix("git+")
-                        if raw.startswith("github:"):
-                            raw = "https://github.com/" + raw.removeprefix("github:")
-                        parsed = urlsplit(raw if "://" in raw else "https://" + raw)
-                        remote = urlunsplit((parsed.scheme, parsed.netloc, parsed.path.split("@", 1)[0], "", ""))
-                        duplicate = clean_url(remote) == source["url"]
-                    else:
-                        local = Path(value.replace("~", str(self.home), 1) if value.startswith("~/") else value)
-                        duplicate = (local if local.is_absolute() else pi / local).resolve() == path
-                    if duplicate:
-                        raise Pending(f"Native Pi package duplicates registered source data: {path}; remove that native resource package explicitly before copy syncing")
-            skills = staged / "skills" if kind == "standard" else staged if kind == "skills-root" else None
-            if skills and skills.is_dir():
-                roots.append(skills)
-                if can_replace:
-                    overwritable.append(skills)
-            extensions = staged / "pi/extensions" if (staged / "pi/extensions").is_dir() else staged / "extensions"
-            if kind == "extensions-root":
-                extensions = staged
-            if kind in {"standard", "extensions-root"} and extensions.is_dir():
-                for entry in sorted(extensions.iterdir()):
-                    key = entry.relative_to(incoming).as_posix()
-                    add_link(pi / "extensions" / entry.name, key, path / entry.relative_to(staged))
-            # Standard sources may carry Pi data beside skills/rules.  Skills and
-            # prompts are discovered by their native locations; the remaining
-            # shared Pi files are linked from the installed copy below.
-            if kind == "standard":
-                pi_root = staged / "pi"
-                if pi_root.is_dir():
-                    for entry in sorted(pi_root.rglob("*")):
-                        if not (entry.is_file() or entry.is_symlink()):
-                            continue
-                        relative = entry.relative_to(pi_root)
-                        if relative.parts[0] == "extensions":
-                            continue
-                        if relative.parts[0] not in {"agents", "prompts"} and relative.parts not in {
-                                ("models.json",), ("settings.json",)}:
-                            continue
-                        key = prefix + (Path("pi") / relative).as_posix()
-                        if key in artifacts:
-                            add_link(pi / relative, key, path / "pi" / relative)
-
-            rules = staged / "rules" if kind == "standard" else staged if kind == "rules-root" else None
-            if rules and rules.is_dir():
-                for rule in sorted(rules.iterdir()):
-                    if rule.suffix not in {".md", ".mdc"} or rule.name.lower() == "readme.md":
-                        continue
-                    text = rule.read_text()
-                    fields, body = {}, text
-                    if text.startswith("---\n"):
-                        parts = text.split("---\n", 2)
-                        if len(parts) != 3:
-                            raise Pending(f"Invalid rule frontmatter: {rule.name}")
-                        fields = dict(line.split(":", 1) for line in parts[1].splitlines() if ":" in line)
-                        body = parts[2]
-                    elif rule.suffix == ".md":
-                        continue
-                    rule_entries.append((name, path, rule, text, fields, body, staged))
-        # Registered extras are applied first so the primary source remains the
-        # final rule authority.  De-duplicate by basename across every consumer.
-        ordered_rules = [entry for entry in rule_entries if entry[0] != "primary"]
-        ordered_rules += [entry for entry in rule_entries if entry[0] == "primary"]
-        selected_rules = {}
-        for entry in ordered_rules:
-            selected_rules[entry[2].stem] = entry
-        for entry in ordered_rules:
-            name, path, rule, text, fields, body, staged = entry
-            if selected_rules[rule.stem] is not entry:
-                continue
-            key = f"generated/rules/{name}/{rule.stem}.mdc"
-            out = incoming / key; out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(text)
-            artifacts[key] = {"source": None, "origin": str(path / rule.relative_to(staged))}
-            slug = str(path).lstrip("/").replace("/", "-")
-            add_link(self.home / ".cursor/rules" / (rule.stem + ".mdc"), key,
-                     self.home / ".config/dotfiles-arch/rules-build" / slug / "mdc" / (rule.stem + ".mdc"))
-            if fields.get("alwaysApply", "").strip() == "true":
-                rules_bodies.append(f"<!-- source: {path} -->\n\n{body}\n")
         alias_key = "home/.local/bin/rebind-window-push"
         if alias_key in artifacts:
             add_link(self.home / ".local/bin/rebind-monitor-moves", alias_key, primary / alias_key)
-        # Primary skills have final priority. Reuse the established collision policy.
-        roots = [r for r in roots if r != incoming / "skills"] + ([incoming / "skills"] if (incoming / "skills").is_dir() else [])
-        for skill in discover_skills(roots, overwritable):
-            key = skill.relative_to(incoming).as_posix()
-            entry = next(s for s in sources if key.startswith(f"extras/{s['id']}/")) if key.startswith("extras/") else sources[0]
-            relative = key.split("/", 2)[2] if key.startswith("extras/") else key
-            for dest in (self.home / ".claude/skills", self.home / ".cursor/skills", codex / "skills", pi / "skills"):
-                add_link(dest / skill.name, key, Path(entry["path"]) / relative)
-        destinations = "\n".join(f"- {s['id']}: {s['path']} ({s['type']})" for s in sources)
-        guidance = ("<!-- managed-by: dotfiles-arch dfa-sync-rules -->\n\n"
-                    "These are replaceable installed DFA copies. Edit shared files in the source checkout, "
-                    f"currently {primary}. Before shared edits run `dfa-deploy source`; "
-                    "if unavailable, restore/rebind the checkout with `dfa-deploy rebind /actual/checkout`. "
-                    "Never use installed copies as source. Deployment replaces installed edits; "
-                    "keep machine-local settings outside managed files. For extra sources use "
-                    "`dfa-deploy source --source-id ID`. `dfa-deploy rollback` restores the previous copy.\n\n"
-                    f"Recorded shared edit destinations:\n{destinations}\n\n")
-        key = "generated/AGENTS.md"
-        output = incoming / key; output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(guidance + "\n".join(rules_bodies))
-        artifacts[key] = {"source": None, "origin": "generated instructions"}
-        legacy = self.home / ".config/dotfiles-arch/rules-build/pi-agents.md"
-        for dest in (codex / "AGENTS.md", pi / "AGENTS.md", self.home / ".config/opencode/AGENTS.md"):
-            add_link(dest, key, legacy)
-        # A separate import preserves user-written Claude instructions.
-        add_link(self.home / ".claude/dfa-deployment.md", key, self.home / ".claude/dfa-deployment.md")
-        key = "generated/dfa-deployment.mdc"
-        output = incoming / key
-        output.write_text("---\ndescription: DFA installed-copy edit destinations\nalwaysApply: true\n---\n" + guidance)
-        artifacts[key] = {"source": None, "origin": "generated instructions"}
-        add_link(self.home / ".cursor/rules/dfa-deployment.mdc", key, self.home / ".cursor/rules/dfa-deployment.mdc")
         key = "DEPLOYMENT-README.md"
         output = incoming / key
         output.write_text(guidance_readme(primary))
@@ -562,29 +380,6 @@ class Deployment:
                     if (path.is_file() or path.is_symlink()) and lexical(path) not in known:
                         raise Pending(f"Unmanaged legacy descendant preserved: {path}")
 
-    def check_handoffs(self, incoming, artifacts, sources, tree):
-        config = read_json(incoming / ".dfa-source-handoffs.json", {"version": 1, "moves": []})
-        if not isinstance(config, dict) or config.get("version") != 1 or not isinstance(config.get("moves"), list):
-            raise Pending("Invalid source handoff configuration")
-        for move in config["moves"]:
-            if not isinstance(move, dict) or set(move) != {"from", "to", "source"}:
-                raise Pending("Invalid source handoff entry")
-            for field in ("from", "to"):
-                value = move[field]
-                if not isinstance(value, str) or not value or Path(value).is_absolute() or any(p in {"..", "."} for p in value.split("/")):
-                    raise Pending("Unsafe source handoff path")
-            if not tree:
-                continue
-            replacements = [s for s in sources[1:] if s["type"] == "standard" and s["url"] == move["source"]]
-            for old in (tree / move["from"]).rglob("*"):
-                if not (old.is_file() or old.is_symlink()) or old.relative_to(tree).as_posix() in artifacts:
-                    continue
-                if len(replacements) != 1:
-                    raise Pending("Source handoff requires exactly one manually registered replacement source")
-                key = f"extras/{replacements[0]['id']}/{move['to']}/{old.relative_to(tree / move['from']).as_posix()}"
-                if key not in artifacts:
-                    raise Pending(f"Replacement source is missing handoff artifact: {key}")
-
     def swap(self, path, target):
         safe_parents(path, self.home)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -604,15 +399,16 @@ class Deployment:
                 "mode": stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o600}
 
     def claude_text(self, text):
+        # The file is the user's own. Only drop the import lines older deployments added.
         lines = []
         for line in text.splitlines():
             imported = self.home / ".claude" / line[1:] if line.startswith("@dfa-rules-") else None
             owned = imported and imported.is_symlink() and (link_value(imported) or "").startswith(str(self.home / ".config/dotfiles-arch/rules-build") + "/")
-            if not owned:
+            if not owned and line != "@dfa-deployment.md":
                 lines.append(line)
-        if "@dfa-deployment.md" not in lines:
-            lines.append("@dfa-deployment.md")
-        return "\n".join(lines) + "\n"
+        if len(lines) == len(text.splitlines()):
+            return text
+        return "\n".join(lines) + "\n" if lines else ""
 
     def write_claude(self, text, mode=0o600):
         path = self.home / ".claude/CLAUDE.md"
@@ -659,7 +455,6 @@ class Deployment:
             incoming.mkdir()
             try:
                 artifacts, links, sources = self.inventory(primary, incoming)
-                self.check_handoffs(incoming, artifacts, sources, tree)
                 snapshots = self.snapshots(links, old["links"])
                 if not tree:
                     self.preserve_legacy_directories(links, snapshots, artifacts)
@@ -671,7 +466,7 @@ class Deployment:
                 self.save_state(incoming, sources, links)
                 claude = self.claude_snapshot()
                 new_claude = self.claude_text(claude["text"] or "")
-                if tree and not old.get("legacy") and sources == old["sources"] and {k: v['artifact'] for k,v in links.items()} == {k: v['artifact'] for k,v in old['links'].items()} and self.same_copy(incoming, tree) and claude["text"] == new_claude:
+                if tree and not old.get("legacy") and sources == old["sources"] and {k: v['artifact'] for k,v in links.items()} == {k: v['artifact'] for k,v in old['links'].items()} and self.same_copy(incoming, tree) and (claude["text"] or "") == new_claude:
                     self.seed()
                     print("Installed copy already current")
                     return
@@ -712,8 +507,6 @@ class Deployment:
                                "links": snapshots, "desired": {k: v["artifact"] for k,v in links.items()},
                                "claude": claude, "claude_new": new_claude, "legacy": bool(old.get("legacy")),
                                "phase": "prepared"}
-                if hasattr(self, "registry_new"):
-                    transaction["registry"] = {"before": self.registry_original, "after": self.registry_new}
                 write_json(self.journal, transaction)
                 try:
                     if next_folder.exists():
@@ -754,13 +547,8 @@ class Deployment:
             raise Pending("Backup pointer drift preserved")
         if link_value(self.previous) not in {transaction["backup_before"], transaction["backup_after"]}:
             raise Pending("Backup pointer drift preserved")
-        if "registry" in transaction:
-            path = self.home / ".config/dotfiles-arch/sync-sources"
-            safe_parents(path, self.home)
-            if path.is_symlink() or path.read_text() not in transaction["registry"].values():
-                raise Pending("Source registry edits preserved")
         text = self.claude_snapshot()["text"]
-        if text not in {transaction["claude"]["text"], transaction["claude_new"]}:
+        if (text or "") not in {transaction["claude"]["text"] or "", transaction["claude_new"]}:
             raise Pending("Later Claude instruction edits preserved; inspect transaction.json")
 
     def activate(self, transaction):
@@ -769,9 +557,8 @@ class Deployment:
             self.swap(Path(target), str(self.active / artifact))
         for target in transaction["links"].keys() - transaction["desired"].keys():
             Path(target).unlink(missing_ok=True)
-        self.write_claude(transaction["claude_new"], transaction["claude"]["mode"])
-        if "registry" in transaction:
-            write_text(self.home / ".config/dotfiles-arch/sync-sources", transaction["registry"]["after"])
+        if transaction["claude_new"] != (transaction["claude"]["text"] or ""):
+            self.write_claude(transaction["claude_new"], transaction["claude"]["mode"])
         if transaction["backup_after"]:
             self.swap(self.previous, transaction["backup_after"])
         else:
@@ -796,8 +583,6 @@ class Deployment:
             (self.home / ".claude/CLAUDE.md").unlink(missing_ok=True)
         else:
             self.write_claude(transaction["claude"]["text"], transaction["claude"]["mode"])
-        if "registry" in transaction:
-            write_text(self.home / ".config/dotfiles-arch/sync-sources", transaction["registry"]["before"])
         if transaction.get("operation") != "rollback":
             next_folder = Path(transaction["next"])
             if next_folder.exists() and not (self.stage / "new").exists():
@@ -887,50 +672,22 @@ class Deployment:
             finally:
                 temporary.unlink(missing_ok=True)
 
-    def rebind(self, path, accept, source_id="primary"):
+    def rebind(self, path, accept):
         with self.locked():
             _, old = self.current()
             path = Path(path).resolve()
-            previous = next((s for s in old["sources"] if s["id"] == source_id), None)
+            previous = old["sources"][0] if old["sources"] else None
             if not previous or not path.is_dir() or path.is_relative_to(self.root):
-                raise Pending("Rebind requires a recorded source ID and actual source directory")
+                raise Pending("Rebind requires a recorded source and the actual source directory")
             if previous["commit"]:
                 url = clean_url(git(path, "remote", "get-url", "origin").stdout.decode())
                 if url != previous["url"] and not accept:
                     raise Pending("Repository URL changed; use --accept-origin-change after verification")
                 if git(path, "merge-base", "--is-ancestor", previous["commit"], "HEAD", check=False).returncode:
                     raise Pending("Replacement checkout does not descend from the recorded source commit")
-            if source_id == "primary":
-                if not (path / "scripts/sync.sh").is_file():
-                    raise Pending("Primary rebind requires the actual checkout")
-                self.deploy(path, locked=True)
-                return
-            registry = self.home / ".config/dotfiles-arch/sync-sources"
-            safe_parents(registry, self.home)
-            if registry.is_symlink():
-                raise Pending("Source registry is redirected")
-            original = registry.read_text()
-            updated = []
-            found = False
-            for line in original.splitlines():
-                if not line.strip() or line.lstrip().startswith("#"):
-                    updated.append(line)
-                    continue
-                spec, *options = line.split("\t")
-                kind, sep, registered = spec.partition(":")
-                if not sep:
-                    kind, registered = "standard", spec
-                registered = registered.replace("~", str(self.home), 1) if registered.startswith("~/") else registered
-                if kind == previous["type"] and lexical(registered) == Path(previous["path"]):
-                    line = f"{kind}:{path}" + ("\t" + "\t".join(options) if options else "")
-                    found = True
-                updated.append(line)
-            if not found:
-                raise Pending("Recorded extra source is no longer registered")
-            self.rebound_sources = {(str(path), previous["type"]): source_id}
-            self.registry_original = original
-            self.registry_new = "\n".join(updated) + "\n"
-            self.deploy(self.source(), locked=True)
+            if not (path / "scripts/sync.sh").is_file():
+                raise Pending("Rebind requires the actual checkout")
+            self.deploy(path, locked=True)
 
 
 def guidance_readme(primary):
@@ -956,11 +713,8 @@ def main():
         p.add_argument("--dry-run", action="store_true")
         if command == "deploy":
             p.add_argument("--committed", action="store_true", help="Deploy HEAD instead of local working files")
-        if command == "source":
-            p.add_argument("--source-id", default="primary")
     p = sub.add_parser("rebind"); p.add_argument("path", type=Path)
     p.add_argument("--accept-origin-change", action="store_true")
-    p.add_argument("--source-id", default="primary")
     for command in ("rollback", "recover", "status", "help"):
         sub.add_parser(command)
     args = parser.parse_args()
@@ -976,7 +730,7 @@ def main():
             if check.returncode:
                 raise Pending(check.stderr.strip() or "Unsupported workstation host")
         if args.command in {"deploy", "update", "source"}:
-            source = deployment.source_path(args.source_id) if args.command == "source" and args.source_id != "primary" else deployment.source(args.source)
+            source = deployment.source(args.source)
             if args.command == "source":
                 print(source)
             elif args.dry_run:
@@ -988,7 +742,7 @@ def main():
                     git(source, "pull", "--ff-only")
                 deployment.deploy(source)
         elif args.command == "rebind":
-            deployment.rebind(args.path, args.accept_origin_change, args.source_id)
+            deployment.rebind(args.path, args.accept_origin_change)
         elif args.command == "rollback":
             deployment.rollback()
         elif args.command == "recover":
@@ -1003,7 +757,7 @@ def main():
             print("dfa-deploy deploy|update|source [--source PATH] [--dry-run]\n"
                   "dfa-deploy deploy [--committed] (default: local working files; no fetch)\n"
                   "dfa-deploy status|rollback|recover\n"
-                  "dfa-deploy rebind PATH [--accept-origin-change] [--source-id ID]\n"
+                  "dfa-deploy rebind PATH [--accept-origin-change]\n"
                   "Policy and inventory: ~/.local/share/workstation/config/docs/deployment.md")
     except (Pending, OSError, ValueError, SyntaxError) as error:
         print(f"dfa-deploy: {error}", file=sys.stderr)

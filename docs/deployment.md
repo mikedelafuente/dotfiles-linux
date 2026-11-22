@@ -31,8 +31,7 @@ copied source closure; external, broken or excluded targets block deployment.
 
 ## Edit and update
 
-Run `dfa-deploy source` before shared edits. For an extra source, use
-`dfa-deploy source --source-id ID`; `dfa-deploy status` lists IDs and edit paths.
+Run `dfa-deploy source` before shared edits; `dfa-deploy status` shows the source.
 Never treat installed copies as editable source repositories.
 
 - `dfa-deploy deploy`: copy primary checkout working files, including staged,
@@ -59,11 +58,13 @@ a broken link blocks deployment. This state is never restored from backups.
 
 Stage the complete copy before changing activation. Validate JSON/JSONC, TOML,
 Python and Bash syntax without running source scripts. Syntax checks do not prove
-application schemas or desktop/hardware compatibility. Missing registered sources,
-protected skill collisions, ownership conflicts or validation failures leave the
-active installation working. Registered extras apply first; primary rules win by
-basename. A losing skill source must explicitly permit duplicate replacement.
-Pi native-package and installed-copy resource loading remain mutually exclusive.
+application schemas or desktop/hardware compatibility. Ownership conflicts or
+validation failures leave the active installation working.
+
+The one source is this checkout. Nothing is linked into an agent's folders (`~/.claude`,
+`~/.cursor`, `~/.codex`, `~/.pi`, `~/.config/opencode`): no skills, rules, `AGENTS.md` or
+Pi data. A deploy removes the links older versions put there, and removes the import lines
+they added to `~/.claude/CLAUDE.md`, which is otherwise the user's own file.
 
 Only absent or managed home targets may be linked. Preserve unrelated real files,
 foreign symlinks and redirected parents. Legacy directory links must not hide
@@ -118,47 +119,12 @@ configuration/data paths and ownership markers.
 
 Restore an unavailable checkout or run `dfa-deploy rebind /actual/checkout`.
 Rebind verifies Git ancestry and origin; a renamed origin requires
-`--accept-origin-change`. For extra roots, add `--source-id ID`. Never discover a
-replacement checkout by basename. Configured sources live in
-`~/.config/dotfiles-arch/sync-sources` and are manually registered; deployment never
-acquires an unregistered source.
-
-`.dfa-source-handoffs.json` declares primary resource moves to registered standard
-sources. Removed source-backed files must have exact replacements in the named
-source. Missing registration or replacement blocks deployment. Replacement source
-bytes win; installed edits are retained only in the immediately previous backup.
-
-## Migration and maintenance
-
-Schema v6 uses the existing migration runner and stamp. `v5-to-v6-migration.sh`
-converts legacy generations automatically and is safe to retry. Preserve the active
-legacy tree as `blue`, install source bytes into `green`, then activate `green`.
-Only after successful activation remove managed old generations and the retired
-override store. Existing installed edits/override effects survive in the first
-backup but are not reapplied on later deploys. Migration reads legacy opaque IDs
-only to locate and translate existing data; no hashes are computed or retained in
-new deployment records. Failure preserves the old usable installation and does not
-advance the schema stamp. Migration of an already blue/green layout is a no-op.
-The backup keeps a blue/green-compatible deployment controller so maintenance
-works after rollback. Its original controller bytes are retained as inert backup
-data in `.dfa/legacy-deployment.py`; other installed files keep their original bytes.
-Recover an outstanding v5 activation with the installed v5 manager before migration.
-
-Schema v7 (`v6-to-v7-migration.sh`) replaces seeded-config links that point into the
-installed copy with plain copies of the same bytes. Real files and foreign links stay.
-
-Daily ordering: refresh repositories → acquire/deploy the primary source → at most
-one restart into updated helpers → migrations → native/app updates → resource sync.
-Source/deployment/migration failures block dependent work. Weekly calls daily first.
-Local deploy and full sync do not acquire source updates. All resource sync entry
-points converge on deployment; identical copies use direct byte/mode comparison
-and do not switch folders. Package owners and cooldowns keep their existing rules.
+`--accept-origin-change`. Never discover a replacement checkout by basename.
 
 ## Verification
 
-Run `python3 tests/test_deployment.py`, `python3 tests/test_source_handoff.py` and
-`python3 tests/test_generic_consumer.py` with temporary supplied homes/sources.
-These cover copying, source replacement, registered resources, ownership,
+Run `python3 tests/test_deployment.py` with temporary supplied homes/sources.
+It covers copying, source replacement, the removal of old agent links, ownership,
 backup/rollback, migration, interrupted activation, concurrency and maintenance
 ordering. Use `bash scripts/check.sh` for shipped shell syntax/shellcheck.
 Implementation and fixture checks do not authorize live workstation deployment.

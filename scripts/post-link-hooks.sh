@@ -25,24 +25,8 @@ refresh_font_cache || HOOK_STATUS=1
 # Apply pending schema migrations
 # --------------------------
 # Renames leave dangling ~/.local/bin symlinks that the linking above cannot
-# prune. Running here means bootstrap and sync also stamp the version, matching
-# how sync-skills/sync-rules are wired into both this and dfa-daily.
+# prune. Running here means bootstrap and sync also stamp the version.
 bash "$DF_SCRIPT_DIR/migrate.sh" || HOOK_STATUS=1
-
-# --------------------------
-# Sync Pi extensions from all configured sources
-# --------------------------
-bash "$DF_SCRIPT_DIR/sync-extensions.sh" || HOOK_STATUS=1
-
-# --------------------------
-# Sync personal skills (Claude Code / Cursor / Codex / Pi)
-# --------------------------
-bash "$DF_SCRIPT_DIR/sync-skills.sh" || HOOK_STATUS=1
-
-# --------------------------
-# Sync personal rules (Cursor / Claude / Codex / Pi)
-# --------------------------
-bash "$DF_SCRIPT_DIR/sync-rules.sh" || HOOK_STATUS=1
 
 if native_package_installed gnome-shell; then
   print_warning_message "GNOME checklist (log out/in if anything below is missing):"

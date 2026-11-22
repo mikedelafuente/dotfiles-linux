@@ -9,7 +9,7 @@ compatible; the rename does not migrate workstation state. See
 
 ## Installed DFA copies
 
-Managed configuration, helpers, rules, skills and Pi resources use
+Managed configuration and helpers use
 `~/.local/share/workstation/config`, a symlink to `blue` or `green`.
 A fresh installation starts with `blue`. Deployment copies and validates the
 inactive folder, switches `config`, and keeps the old active folder as the backup.
@@ -28,7 +28,7 @@ Choose by what you want to do:
 | --- | --- | --- | --- |
 | Usual daily updates | `dfa daily` | Yes; requires a clean dotfiles checkout | Routine updates |
 | Weekly maintenance | `dfa weekly` | Yes; includes daily | Forced updates, orphan preview |
-| Test config, rule or skill edits | `dfa deploy` | No; uses uncommitted local files | No |
+| Test config edits | `dfa deploy` | No; uses uncommitted local files | No |
 | Test setup scripts or repair setup | `dfa sync-dotfiles` | No; uses uncommitted local files | Yes; saved profile setup and guarded updates |
 
 Dirty dotfiles stop daily/weekly before dependent maintenance. Test with deploy or
@@ -169,10 +169,9 @@ Paths use `$HOME` — different usernames on other machines are fine.
 ### Day-to-day updates (preferred)
 
 ```bash
-dfa-daily                         # dfa-update-repos + dfa-migrate + dfa-update-system + dfa-sync-extensions + dfa-sync-skills + dfa-sync-rules + dfa-sync-harness-agents (edit ~/.local/bin/dfa-daily)
+dfa-daily                         # dfa-update-repos + dfa-migrate + dfa-update-system + dfa-update-npm-clis + dfa-sync-harness-agents (edit ~/.local/bin/dfa-daily)
                               # if dfa-update-repos pulls new dotfiles-linux commits, runs dfa-sync-dotfiles and restarts once
 dfa-weekly                        # dfa-daily + forced updates + orphan preview
-dfa-sync-sources add /path/to/repo # manual standard resource source: skills/rules and full shared Pi data; then dfa-deploy deploy
 dfa-update-system                 # after link-dotfiles; or:
 bash scripts/update-system.sh
 bash scripts/update-system.sh --yes        # native updates; Arch requires a clean AUR scan
@@ -296,29 +295,13 @@ With `--yes`, pass `--profile` if none is saved yet. `--cleanup` only previews; 
 
 **Rule of thumb:** after you pull big changes on another PC, run `sync.sh` once (needs sudo for packages). Use `update-system.sh` for day-to-day package-only updates without re-running setup scripts.
 
-### Pi configuration
+### Agents: nothing shared is installed
 
-[skills](https://github.com/mikedelafuente/skills) owns all opt-in Pi installation,
-updates, health checks, repair and shared resources. Dotfiles does not install or
-update Pi; an existing Pi CLI remains available to the generic harness launcher.
-Use that owner's `bin/pi-setup install --resources generation` for the workstation
-resource route. Native package loading and installed-copy loading are mutually exclusive.
-
-Register the source manually when ready for a separately authorized live cutover:
-
-Source registration and resource sync work on both Arch and Ubuntu.
-
-```bash
-dfa-sync-sources add /path/to/skills --type standard
-```
-
-Any normal resource sync then deploys the registered source through complete
-blue/green copies: skills, rules, models/settings, custom agents, prompts and
-extensions. Source setup scripts are never executed. Credentials, runtime model
-stores and local edits stay protected. Primary `skills/` and `rules/` are empty
-slots for final overrides; a duplicate skill requires its losing source to be
-explicitly overwritable. See [deployment](docs/deployment.md) before changing an
-existing source mapping.
+This repository installs agent CLIs and launchers only. It links no skills, rules,
+`AGENTS.md`, `CLAUDE.md` or Pi data into any agent's folders (`~/.claude`, `~/.cursor`,
+`~/.codex`, `~/.pi`, `~/.config/opencode`), and a deploy removes the links older
+versions put there. Each project holds its own rules and skills. The
+[skills](https://github.com/mikedelafuente/skills) repository is a library to copy from.
 
 ---
 
@@ -478,7 +461,7 @@ Above GNOME 51, the accepted gap leaves only native half-snap and monitor moves.
 | `Ctrl+B` `n` / `p` | Next / previous window |
 | `Ctrl+B` `?` | All bindings |
 
-Agents: `dev --tmux <dir> --agent <harness>` (`claude`, `codex`, or `opencode`) starts that CLI in the split pane. Without `--agent`, `dev --tmux` uses `DEFAULT_HARNESS` — set during `setup-dev.sh` (auto-picked if only one harness CLI is installed, asked with a numbered list if several are) — and falls back gracefully at runtime if that saved default's CLI has gone stale (silently to the sole installed harness, an interactive prompt if several remain, a plain shell if none are installed). Claude's and Codex's file edits automatically reveal themselves in the Neovim pane (loaded into the edit window like a nvim-tree click, or focused/reloaded in place if already open) via the `nvim-reveal-edit` hook installed by `setup-claude.sh`/`setup-codex.sh`. A Claude status line starting point lives in `config/claude/statusline-command.sh`; setup never installs it. To use it, copy it to `~/.claude/` and set `"statusLine": {"type": "command", "command": "bash ~/.claude/statusline-command.sh", "refreshInterval": 1}` in `~/.claude/settings.json`. `dfa-sync-extensions`, `dfa-sync-skills`, and `dfa-sync-rules` keep shared Pi extensions, skills, and always-apply rules available to detected Codex installations under `$CODEX_HOME` (default `~/.codex`).
+Agents: `dev --tmux <dir> --agent <harness>` (`claude`, `codex`, or `opencode`) starts that CLI in the split pane. Without `--agent`, `dev --tmux` uses `DEFAULT_HARNESS` — set during `setup-dev.sh` (auto-picked if only one harness CLI is installed, asked with a numbered list if several are) — and falls back gracefully at runtime if that saved default's CLI has gone stale (silently to the sole installed harness, an interactive prompt if several remain, a plain shell if none are installed). Claude's and Codex's file edits automatically reveal themselves in the Neovim pane (loaded into the edit window like a nvim-tree click, or focused/reloaded in place if already open) via the `nvim-reveal-edit` hook installed by `setup-claude.sh`/`setup-codex.sh`. A Claude status line starting point lives in `config/claude/statusline-command.sh`; setup never installs it. To use it, copy it to `~/.claude/` and set `"statusLine": {"type": "command", "command": "bash ~/.claude/statusline-command.sh", "refreshInterval": 1}` in `~/.claude/settings.json`.
 
 **Zed:** a Terminal Thread (Agent Panel → "+" → Terminal, or `Ctrl+Alt+T` — see `config/zed/keymap.json`) runs `zed-agent-init`, which starts the same `DEFAULT_HARNESS` CLI as `dev --tmux` (with the same stale-default fallback) — no separate reveal hook is needed since the agent runs inside the same Zed window as the editor, so Zed's own file watcher picks up its edits. In Zed's terminal, `Shift+Enter` inserts a newline in Claude Code and similar CLIs instead of submitting.
 
@@ -495,7 +478,6 @@ Agents: `dev --tmux <dir> --agent <harness>` (`claude`, `codex`, or `opencode`) 
 | `z` / `zi` | Smart cd (zoxide) |
 | `r` / `dfa-repos` | fzf-pick a repo under `~/repos` and cd into it |
 | `dfa` | Action guide and command picker: everyday updates, weekly maintenance, local config testing or setup repair. `dfa list` shows the same guide. |
-| `dfa sync-sources` | Interactive manager for local resource sources: add, remove, reorder, and apply changes. Primary shows the verified editable checkout; scripts still run from the installed copy. Removing a source keeps its files; `dfa sync-sources list` lists without prompts |
 | `pbcopy` / `pbpaste` | Wayland clipboard in/out |
 | `mvup` / `mvdown` / `mvst` | Mullvad connect / disconnect / status |
 | `check` | Syntax + shellcheck the repo scripts |
@@ -540,8 +522,6 @@ dotfiles-linux/
 ├── NOTES.md               ← WiFi, archinstall, NVIDIA, sync details
 ├── CLAUDE.md              ← shared architecture and agent guidance
 ├── AGENTS.md              ← symlink to CLAUDE.md for other agents
-├── skills/                ← empty primary skill slot (.gitkeep)
-├── rules/                 ← empty primary rule slot (.gitkeep)
 ├── .cursor/rules/         ← repo conventions for AI agents
 ├── prepare-archinstall.sh ← guided disk/hostname/gfx_driver prep, before archinstall
 ├── post_install.sh        ← minimal post-archinstall (chains into bootstrap.sh)
@@ -557,7 +537,7 @@ dotfiles-linux/
 │   ├── check.sh           # bash -n + shellcheck
 │   └── setup-*.sh
 ├── home/                  # → ~
-│   └── .local/bin/        # dfa-daily, dfa-weekly, dfa-migrate, dfa-update-repos, dfa-sync-dotfiles, dfa-sync-skills, dfa-sync-rules, dfa-sync-sources, dfa-sync-harness-agents, dfa-update-system, dfa-refresh-audio, …
+│   └── .local/bin/        # dfa-daily, dfa-weekly, dfa-migrate, dfa-update-repos, dfa-sync-dotfiles, dfa-sync-harness-agents, dfa-update-system, dfa-refresh-audio, …
 └── config/                # → ~/.config
 ```
 
@@ -574,73 +554,6 @@ dotfiles-linux/
 | [AGENTS.md](AGENTS.md) | Shared agent guidance (symlink to `CLAUDE.md`) |
 | `welcome` (in shell) | Alias and tmux quick reference |
 | `vimcheat` | Neovim keybindings |
-
-### Agent council
-
-Use `/grill-me` or `/grill-with-docs` for a lower-cost interview without the council.
-Use `/advise-me` or `/advise-with-docs` for automatic council recommendations;
-the `with-docs` variants capture resolved terms and accepted decisions in glossary/ADRs.
-Use `agent-council` directly for a standalone debate. Only relevant roles compare evidence and
-tradeoffs: PM owns long-term vision, BA product/domain web research, TPM interoperability
-and integration research, Architect scalable/maintainable design, and Engineer
-existing code and standards. Human choices stay yours. Simple questions use compact
-lenses, disputes use independent agents with a fixed debate budget. Accepted Q/A can feed
-`/to-spec` and `/to-tickets`; `/bro` explains the answer simply. These are agent
-skill invocations, not shell commands. Install through `dfa-sync-skills`.
-BA and TPM check existing research first; project councils save reusable findings
-in `docs/market-research/` by default unless explicitly told not to store research.
-See [examples and limits](https://github.com/mikedelafuente/skills/blob/main/skills/mikedelafuente/agent-council/references/examples.md).
-
-Personal workflows: `/ask-mike` chooses an entrypoint; `/council-handoff spec|tickets`
-carries accepted decisions into Matt's original workflow; `/build-with-ponytail`
-adds simplicity guidance and combined final `/review-changes`. Skills are grouped
-in the standalone skills repository and installed under
-their original names. Dotfiles-arch has final skill priority; duplicate replacement requires the losing
-source to allow overwrites (`dfa-sync-sources add <path> --overwritable true`).
-Protected duplicates stop sync before links change. See [imports and update review](https://github.com/mikedelafuente/skills/blob/main/skills/README.md).
-
-`dfa-sync-sources` manager option **5** toggles skill overwrites for an existing
-source. It displays the current setting; changes apply on the next skill sync.
-
-### Shared agent config in cloud checkouts
-
-Keep this repository as a second checkout (for example `/workspace/dotfiles-linux`)
-next to the working project. Add this command to the existing cloud setup script,
-keeping the project's existing setup commands:
-
-```bash
-bash /workspace/dotfiles-linux/scripts/install-cloud-agent-config.sh --source /workspace/skills --home "$HOME"
-```
-
-Requires Bash, Python 3.8+, and ordinary shell utilities (`awk`, `mktemp`, `whoami`);
-no Arch packages, sudo, network calls, desktop config, or agent CLI installation.
-The checkout must remain available during the task. Pass the separately available skills checkout with `--source`; no source is acquired or
-registered automatically. The installer links complete skill folders into
-`<home>/.agents/skills`; no laptop paths or Trellis skill copies are used.
-It reads only the explicit source, not the laptop's extra sync sources.
-
-Shared `rules/` files with `alwaysApply: true` are flattened through the existing
-rule field/body readers into a managed block in `$CODEX_HOME/AGENTS.md` (default
-`<home>/.codex/AGENTS.md`). Conditional rules and `rules/README.md` are excluded.
-This is the shared global baseline used by workstation rule sync; the repository's
-root `AGENTS.md`/`CLAUDE.md` describes workstation setup and is not a project-agnostic
-baseline. Neither that file nor `.cursor/rules/` is copied into the working project.
-Existing text outside the managed block and project `AGENTS.md` files stay intact.
-Reruns update the block and prune only removed skills owned by the selected source.
-Unrelated skill collisions, global AGENTS symlinks, malformed managed blocks, and
-nonempty global `AGENTS.override.md` fail without replacing user content.
-
-Codex's documented user skill location is `$HOME/.agents/skills`; global
-instructions load before project instructions, with nearer project instructions
-resolving conflicts. [Skill discovery](https://learn.chatgpt.com/docs/build-skills)
-and [AGENTS discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
-Start a fresh cloud task after the saved setup is published; an existing task or
-browser refresh does not establish that the setup ran. Verify the actual runtime's
-catalog and loaded global/project instruction sources; local filesystem tests do
-not prove cloud discovery. If the environment changes `HOME`/`CODEX_HOME` between
-setup and task launch, use the task's actual home values for installation.
-
-Local regression check: `python3 tests/test_cloud_agent_config.py`.
 
 Desktop IDE standalone setup supports Arch and Ubuntu 26.04:
 `bash scripts/setup-zed.sh` and `bash scripts/setup-orca.sh`. `dev` accepts either

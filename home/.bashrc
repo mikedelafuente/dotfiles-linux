@@ -282,14 +282,6 @@ aliases() {
         echo "       deploy = test config edits, sync-dotfiles = test setup edits (no commit needed)"
         echo "  dfa deploy: deploy tests local edits without committing; update pulls a clean checkout"
         echo "              source/rebind/rollback/recover manage blue/green copies"
-        echo "  dfa sync-sources: add/remove AI sources, reorder priority, apply changes"
-        echo "  Agent skills: /grill-me, /grill-with-docs (interview without council)"
-        echo "  Agent skills: /advise-me, /advise-with-docs (automatic agent-council recommendations)"
-        echo "  Agent skills: /council-handoff spec|tickets carries accepted Q/A; /bro simplifies answers"
-        echo "  Agent skills: /ask-mike, /build-with-ponytail, /review-changes (personal workflows)"
-        echo "  Skill source: dfa-sync-sources option 5 toggles overwrite permissions"
-        echo "  Skill source: dfa-sync-sources add <path> --overwritable true (allow duplicate replacement)"
-        echo '  Cloud agents: bash <dotfiles-checkout>/scripts/install-cloud-agent-config.sh --home "$HOME"'
         echo '  Standalone Arch / Ubuntu 26.04: scripts/setup-{kitty,essentials,bash,git,github-cli,node,neovim,dev,zed,orca,python,rust,golang,php,ruby,chrome,slack,zoom,nvidia,ollama}.sh'
         echo '  Full setup: bash scripts/bootstrap.sh (Arch / installed Ubuntu 26.04 GNOME); dfa-sync-dotfiles always updates before setup/linking'
         echo '  Sync cleanup: --cleanup previews; --remove-obsolete is Arch-only, terminal + type remove; user configs/npm preserved'

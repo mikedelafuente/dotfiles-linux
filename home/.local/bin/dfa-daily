@@ -24,9 +24,6 @@ DAILY_STEPS=(
   dfa-migrate
   dfa-update-system
   dfa-update-npm-clis
-  dfa-sync-skills
-  dfa-sync-extensions
-  dfa-sync-rules
   dfa-sync-harness-agents
 )
 
@@ -42,9 +39,6 @@ Default steps:
   dfa-migrate         run pending dotfiles-arch schema migrations
   dfa-update-system   native Arch/APT update (24h cooldown; --force overrides)
   dfa-update-npm-clis npm-owned claude/codex/opencode; native Claude uses claude update
-  dfa-sync-skills     relink skills from dotfiles-arch + dfa-sync-sources extras
-  dfa-sync-extensions relink Pi extensions from dotfiles-arch + dfa-sync-sources extras
-  dfa-sync-rules      relink Cursor rules from dotfiles-arch + dfa-sync-sources extras
   dfa-sync-harness-agents  sync local Ollama models into Codex/opencode's model lists
 
 Repository/source acquisition and safe deployment run first. Failure blocks
@@ -81,7 +75,7 @@ main() {
     esac
   done
   root="$(resolve_dotfiles_arch)" || return 1
-  # Refresh configured repositories first, including extra rules/skills sources.
+  # Refresh configured repositories first.
   if [[ "${_DAILY_RESTARTED:-0}" != 1 ]]; then
     command -v dfa-update-repos &>/dev/null || return 1
     dfa-update-repos || return 1

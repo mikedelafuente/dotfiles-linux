@@ -1,6 +1,6 @@
 # Repository agent guidance
 
-`AGENTS.md` links here. Shared guidance for Claude Code, Codex, Pi and Cursor.
+`AGENTS.md` links here. This repository's own guidance, for any agent working in it.
 Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation.
 
 ## Read when relevant
@@ -20,9 +20,14 @@ Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation
 
 ## Shared source and deployment
 
-- The generated global guidance (`~/.claude/dfa-deployment.md`, the harnesses' installed
-  `AGENTS.md`) already covers `dfa-deploy source`, rebind, extra sources and installed copies.
+- Installed copies (`~/.local/share/workstation/config`, and what links into it) are
+  replaceable: edit shared files in the source checkout only. Run `dfa-deploy source` first;
+  if it is unavailable, `dfa-deploy rebind /actual/checkout`.
   Missing source/provenance: stop shared edits and restore/rebind.
+- Nothing is linked into an agent's folders (`~/.claude`, `~/.cursor`, `~/.codex`, `~/.pi`,
+  `~/.config/opencode`): no skills, rules, `AGENTS.md`, `CLAUDE.md` or Pi data, for any
+  profile. A deploy only removes what older versions put there. Each project holds its own
+  rules and skills. Don't add a shared or user-level rule, skill or sync without being asked.
 - Runtime links use `~/.local/share/workstation/config`, pointing to `blue` or `green`.
   Deploy validates before activation and keeps one backup. No automatic merging, override or capture.
 - Verify using temporary fixtures. Implementation does not authorize deployment,
@@ -62,12 +67,8 @@ Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation
   post-link hooks. `setup-dev.sh` runs last so harness selection sees installed tools.
 - `dfa-weekly` delegates daily work to `dfa-daily`. Keep the daily deployment restart
   bounded to one; do not duplicate it. Preserve cooldowns and schema stamps.
-- [Standalone skills/Pi owner](https://github.com/mikedelafuente/skills) owns portable
-  skills/rules/resources and all Pi installation/update/repair/removal/settings.
-  This repo owns generic launching and registered-source syncing; no automatic acquisition.
-- Primary `skills/` and `rules/` are empty override slots; `.cursor/rules/` is project-only.
-  Registered sources must exist. Primary content wins, but protected skill duplicates
-  block before mutation unless losing sources allow overwrites. Sync never executes source scripts.
+- This repo installs and launches agent CLIs; it configures none of them. The
+  [skills](https://github.com/mikedelafuente/skills) repository is a library to copy from.
 - New harness IDs/labels must agree in `scripts/fn-lib.sh` and
   `home/.local/bin/dotfiles-arch-lib.sh`. Reuse shared default-harness resolution for launchers.
 
@@ -89,4 +90,3 @@ Arch Linux / installed Ubuntu 26.04 LTS, x86_64/amd64, GNOME Wayland workstation
 - Work on a feature branch; never commit directly to `main`.
   After merging, delete local feature branches and return to clean `main`.
 - Answer briefly: result first, commands/paths in inline code, no filler.
-  Shared style: [skills owner](https://github.com/mikedelafuente/skills/tree/main/rules).

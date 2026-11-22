@@ -895,38 +895,11 @@ only Bash syntax, direct ShellCheck and static operation inspection were used.
 - [REFRESHER.md](REFRESHER.md) — keyboard shortcuts and short memory jogger
 - [home/.welcome.md](home/.welcome.md) — the `welcome` cheat sheet
 
-### Shared agent skill: council
+### Agent skills and rules: none installed
 
-`agent-council` is a repository skill, requiring no additional package. Existing
-Claude Code, Codex, opencode (when configured for these skills), and Pi harnesses
-can engage relevant product/engineering roles with distinct responsibilities,
-BA-led domain research, TPM-led integration research, and bounded debate. Research
-checks existing findings first and is saved in `docs/market-research/` by default
-unless explicitly told not to store it. Distribute
-through `dfa-sync-skills` (Claude/Cursor/detected Codex/Pi). `/grill-me` and
-`/grill-with-docs` use the coordinator's own recommendations;
-`/advise-me` and `/advise-with-docs` automatically
-use the council through `advising`. The `with-docs` variants record accepted
-terms/decisions in glossary/ADRs. Carry accepted Q/A to `/to-spec`
-or `/to-tickets`, and use `/bro` for a plain explanation. Skill invocations are
-agent prompts, not shell commands. See [examples](https://github.com/mikedelafuente/skills/blob/main/skills/mikedelafuente/agent-council/references/examples.md).
-Personal `/ask-mike`, `/council-handoff spec|tickets`, `/build-with-ponytail`, and
-`/review-changes` compose unchanged upstream skills without additional packages.
-`dfa-sync-skills` discovers nested skill folders and gives dotfiles-linux final
-priority. `dfa-sync-sources add <path> --overwritable true` allows duplicate
-replacement from that source; false is the default and blocks replacement before
-links change; see [source groups and updates](https://github.com/mikedelafuente/skills/blob/main/skills/README.md).
-
-`dfa-sync-sources` manager option **5** toggles skill overwrites for an existing
-source. It displays the current setting; changes apply on the next skill sync.
-
-### Cloud agent config (no additional packages)
-
-`bash scripts/install-cloud-agent-config.sh --home "$HOME"` distributes this
-checkout's shared skills and flattened global rule baseline to a cloud user's
-agent directories. Requires existing Bash, Python 3.8+, and ordinary shell
-utilities; installs no Arch packages, agent CLIs, or desktop configuration.
-See [cloud setup](README.md#shared-agent-config-in-cloud-checkouts).
+This repository links no skills, rules, `AGENTS.md`, `CLAUDE.md` or Pi data into any agent's
+folders, and a deploy removes the links older versions put there. Each project holds its own
+rules and skills; [skills](https://github.com/mikedelafuente/skills) is a library to copy from.
 
 
 ## Desktop IDE sources and update owners (Arch / Ubuntu 26.04)
@@ -1362,14 +1335,3 @@ transactions, vendor installers, profile loading, genuine future updater integri
 GUI launches, Ubuntu dependency resolution, sandbox enforcement and hardware/model
 behavior remain **unverified**. Read-only primary research establishes documented
 mechanisms and initial-verification feasibility, not workstation runtime success.
-
-## Shared resource ownership
-
-[skills](https://github.com/mikedelafuente/skills) owns grouped skills, personal
-rules and the complete opt-in Pi lifecycle. Manually register a checkout with
-`dfa-sync-sources add /path/to/skills --type standard`; generic syncing delivers
-models/settings, agents, prompts, extensions, rules and skills through retained
-installed copies without running source scripts. Primary rules/skills are
-final override slots; duplicate skills retain overwrite protection. Native Pi
-package loading and installed-copy loading are mutually exclusive. Cloud consumers
-pass `--source /path/to/skills` to `scripts/install-cloud-agent-config.sh`.
