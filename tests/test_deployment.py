@@ -36,10 +36,25 @@ def main():
             assert (result.returncode == 0) == ok, result.stdout + result.stderr
             return result
         run("deploy", "--source", str(source))
+        # Claude's instruction file is the user's own: a deploy never creates or fills it.
+        claude = home / ".claude/CLAUDE.md"
+        assert not claude.exists() and not (home / ".claude/dfa-deployment.md").exists()
+        claude.parent.mkdir(exist_ok=True)
+        claude.write_text("mine\n@dfa-deployment.md\n")
+        # A link an older deployment put in an agent's folder goes with the next deploy.
+        manifest = home / ".local/share/workstation/config/.dfa/links.json"
+        recorded = json.loads(manifest.read_text())
+        stale = home / ".claude/skills/old"
+        stale.parent.mkdir()
+        stale.symlink_to(home / ".local/share/workstation/config/home/.bashrc")
+        recorded[str(stale)] = "home/.bashrc"
+        manifest.write_text(json.dumps(recorded))
         live = home / ".bashrc"
         live.write_text("installed edit\n")
         (source / "home/.bashrc").write_text("source two\n")
         run("deploy")
+        assert claude.read_text() == "mine\n", "Only the import an older deployment added goes"
+        assert not stale.is_symlink(), "A managed link in an agent's folder must be removed"
         assert live.read_text() == "source two\n", "Installed edits must be replaced from source"
         state = home / ".local/share/workstation"
         assert (state / "previous/home/.bashrc").read_text() == "installed edit\n"
@@ -228,14 +243,12 @@ def full_repository():
         stamp = home / ".config/dotfiles-arch/.dotfiles_schema_version"
         assert stamp.read_text().strip() == "7"
         installed = home / ".local/share/workstation/config"
-        # The installed manager must identify the edit checkout, not its runtime.
-        listed = run(str(installed / "scripts/sync-sources.sh"), "list").stdout
-        assert f"Primary (always, standard): {source}" in listed, listed
         assert (home / ".packages.md").read_text() == (source / "PACKAGES.md").read_text()
         assert (home / ".pi/agent/models-store.json").exists() is False
         assert not (home / ".pi/agent/auth.json").exists()
-        targets = [p for root in (home / ".claude/skills", home / ".cursor/skills", home / ".codex/skills", home / ".pi/agent/skills") for p in root.iterdir()]
-        assert targets and all(p.is_symlink() and str(installed) in os.readlink(p) for p in targets)
+        # Nothing is linked into an agent's folders: no skills, rules or instruction files.
+        for agent in (".claude", ".cursor", ".codex", ".pi", ".config/opencode"):
+            assert not (home / agent).exists(), agent
         previous = os.readlink(installed)
         run("scripts/migrate.sh")
         assert os.readlink(installed) == previous
@@ -285,7 +298,7 @@ def full_repository():
             '  exit "${MOCK_PULL_FAIL:-0}"\nfi\nexec "$REAL_GIT" "$@"\n')
         (guard / "git").chmod(0o755)
         for step in ("dfa-update-repos", "dfa-migrate", "dfa-update-system", "dfa-update-npm-clis",
-                     "dfa-sync-skills", "dfa-sync-extensions", "dfa-sync-rules", "dfa-sync-harness-agents"):
+                     "dfa-sync-harness-agents"):
             (guard / step).write_text(f'#!/bin/bash\nprintf "%s\\n" "{step}" >> "$DAILY_LOG"\n')
             (guard / step).chmod(0o755)
         env.update(PATH=str(guard) + os.pathsep + str(home / ".local/bin") + os.pathsep + os.environ["PATH"],

@@ -2,7 +2,7 @@
 
 ## Installed DFA copies
 
-Managed configuration, helpers, rules, skills and Pi resources use
+Managed configuration and helpers use
 `~/.local/share/workstation/config`, a symlink to `blue` or `green`.
 A fresh installation starts with `blue`. Deployment copies and validates the
 inactive folder, switches `config`, and keeps the old active folder as the backup.
@@ -283,12 +283,8 @@ Super+1-9        workspaces        sync.sh      update machine
 4. [NOTES.md](NOTES.md) — WiFi, archinstall, NVIDIA  
 5. Ask the agent: `agent --mode ask "…"`
 
-## Skills/Pi handoff
+## Agents
 
-The [skills repository](https://github.com/mikedelafuente/skills) owns shared
-skills/rules and all opt-in Pi maintenance. Workstation sync consumes only manually
-registered data through installed copies. Review [deployment](docs/deployment.md)
-before a separately authorized live cutover. For future authorized workstation
-use, the owner supplies `bin/pi-setup install --resources generation`; registration
-is `dfa-sync-sources add /path/to/skills --type standard`. Do not also load that
-source as a native Pi resource package.
+This repository links no skills, rules, `AGENTS.md`, `CLAUDE.md` or Pi data into any agent's
+folders, and a deploy removes the links older versions put there. Each project holds its own
+rules and skills; [skills](https://github.com/mikedelafuente/skills) is a library to copy from.
