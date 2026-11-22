@@ -14,22 +14,6 @@ seven_day=$(field '.rate_limits.seven_day.used_percentage')
 five_hour_reset=$(field '.rate_limits.five_hour.resets_at')
 weekly_reset=$(field '.rate_limits.seven_day.resets_at')
 
-# Saves the account's limits for skills that pace long runs, which can't see them. Sessions hold readings of different ages,
-# so each limit keeps the freshest one: a missing figure or an earlier resets_at changes nothing, otherwise the new reading wins.
-# A session renders right after its own reply, so its reading is current; within one window it can drop (a plan upgrade resets it).
-if [ -n "$five_hour$seven_day" ]; then
-  usage=~/.claude/usage.json
-  echo "$input" | jq -c --arg saved "$(cat "$usage" 2>/dev/null)" '
-    (($saved | try fromjson catch null | objects) // {}) as $old
-    | def freshest($name):
-        {used: .rate_limits[$name].used_percentage, resets: .rate_limits[$name].resets_at} as $new
-        | {used: $old[$name], resets: $old[$name + "_resets_at"]} as $kept
-        | if $new.used == null or ($kept.resets != null and $new.resets < $kept.resets) then $kept else $new end;
-      freshest("five_hour") as $five | freshest("seven_day") as $seven
-    | {five_hour: $five.used, seven_day: $seven.used, five_hour_resets_at: $five.resets, seven_day_resets_at: $seven.resets,
-       at: (now | floor)}' > "$usage.$$" && mv "$usage.$$" "$usage"
-fi
-
 # Catppuccin Mocha
 blue='137;180;250'; green='166;227;161'; mauve='203;166;247'; overlay='108;112;134'
 peach='250;179;135'; red='243;139;168'; teal='148;226;213'; yellow='249;226;175'
